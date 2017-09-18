@@ -16,28 +16,23 @@
 
 package com.example.android.architecture.blueprints.todoapp.tasks
 
-import android.arch.lifecycle.LifecycleFragment
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
+import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
 import android.support.v7.widget.PopupMenu
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.databinding.TasksFragBinding
 import com.example.android.architecture.blueprints.todoapp.util.setupSnackbar
-import java.util.ArrayList
+import java.util.*
 
 /**
  * Display a grid of [Task]s. User can choose to view all, active or completed tasks.
  */
-class TasksFragment : LifecycleFragment() {
+class TasksFragment : Fragment() {
 
     private lateinit var viewDataBinding: TasksFragBinding
     private lateinit var listAdapter: TasksAdapter
