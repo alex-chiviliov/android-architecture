@@ -17,7 +17,7 @@ package com.example.android.architecture.blueprints.todoapp.addedittask
 
 import android.arch.lifecycle.Observer
 import android.os.Bundle
-import com.example.android.architecture.blueprints.todoapp.LifecycleAppCompatActivity
+import android.support.v7.app.AppCompatActivity
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.util.ADD_EDIT_RESULT_OK
 import com.example.android.architecture.blueprints.todoapp.util.obtainViewModel
@@ -27,7 +27,7 @@ import com.example.android.architecture.blueprints.todoapp.util.setupActionBar
 /**
  * Displays an add or edit task screen.
  */
-class AddEditTaskActivity : LifecycleAppCompatActivity(), AddEditTaskNavigator {
+class AddEditTaskActivity : AppCompatActivity(), AddEditTaskNavigator {
 
     override fun onSupportNavigateUp(): Boolean {
         onBackPressed()

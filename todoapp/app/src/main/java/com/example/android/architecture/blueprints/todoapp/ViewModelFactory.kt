@@ -39,6 +39,7 @@ class ViewModelFactory private constructor(
         private val tasksRepository: TasksRepository
 ) : ViewModelProvider.NewInstanceFactory() {
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>) =
             with(modelClass) {
                 when {

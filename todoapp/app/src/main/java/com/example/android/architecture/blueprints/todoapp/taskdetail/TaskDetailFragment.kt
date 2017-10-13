@@ -15,15 +15,10 @@
  */
 package com.example.android.architecture.blueprints.todoapp.taskdetail
 
-import android.arch.lifecycle.LifecycleFragment
 import android.os.Bundle
 import android.support.design.widget.Snackbar
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.support.v4.app.Fragment
+import android.view.*
 import android.widget.CheckBox
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.databinding.TaskdetailFragBinding
@@ -32,7 +27,7 @@ import com.example.android.architecture.blueprints.todoapp.util.setupSnackbar
 /**
  * Main UI for the task detail screen.
  */
-class TaskDetailFragment : LifecycleFragment() {
+class TaskDetailFragment : Fragment() {
 
     private lateinit var viewDataBinding: TaskdetailFragBinding
 

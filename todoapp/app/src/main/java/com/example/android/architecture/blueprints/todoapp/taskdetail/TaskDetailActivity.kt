@@ -18,22 +18,17 @@ package com.example.android.architecture.blueprints.todoapp.taskdetail
 import android.arch.lifecycle.Observer
 import android.content.Intent
 import android.os.Bundle
-import com.example.android.architecture.blueprints.todoapp.LifecycleAppCompatActivity
+import android.support.v7.app.AppCompatActivity
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.addedittask.AddEditTaskActivity
 import com.example.android.architecture.blueprints.todoapp.addedittask.AddEditTaskFragment
 import com.example.android.architecture.blueprints.todoapp.taskdetail.TaskDetailFragment.Companion.REQUEST_EDIT_TASK
-import com.example.android.architecture.blueprints.todoapp.util.ADD_EDIT_RESULT_OK
-import com.example.android.architecture.blueprints.todoapp.util.DELETE_RESULT_OK
-import com.example.android.architecture.blueprints.todoapp.util.EDIT_RESULT_OK
-import com.example.android.architecture.blueprints.todoapp.util.obtainViewModel
-import com.example.android.architecture.blueprints.todoapp.util.replaceFragmentInActivity
-import com.example.android.architecture.blueprints.todoapp.util.setupActionBar
+import com.example.android.architecture.blueprints.todoapp.util.*
 
 /**
  * Displays task details screen.
  */
-class TaskDetailActivity : LifecycleAppCompatActivity(), TaskDetailNavigator {
+class TaskDetailActivity : AppCompatActivity(), TaskDetailNavigator {
 
     private lateinit var taskViewModel: TaskDetailViewModel
 
