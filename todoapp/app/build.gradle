@@ -86,7 +86,6 @@ dependencies {
     compile "com.android.support:design:$rootProject.supportLibraryVersion"
     compile "com.android.support:recyclerview-v7:$rootProject.supportLibraryVersion"
     compile "com.android.support:support-v4:$rootProject.supportLibraryVersion"
-    compile "com.google.guava:guava:$rootProject.guavaVersion"
     compile "com.google.code.findbugs:jsr305:2.0.1"
     compile "android.arch.lifecycle:extensions:$rootProject.archLifecycleVersion"
     kapt "com.android.databinding:compiler:$gradleVersion"

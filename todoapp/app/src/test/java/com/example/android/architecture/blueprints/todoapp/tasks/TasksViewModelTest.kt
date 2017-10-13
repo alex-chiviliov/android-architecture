@@ -27,13 +27,8 @@ import com.example.android.architecture.blueprints.todoapp.addedittask.AddEditTa
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource.LoadTasksCallback
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
-import com.example.android.architecture.blueprints.todoapp.util.ADD_EDIT_RESULT_OK
-import com.example.android.architecture.blueprints.todoapp.util.DELETE_RESULT_OK
-import com.example.android.architecture.blueprints.todoapp.util.EDIT_RESULT_OK
+import com.example.android.architecture.blueprints.todoapp.util.*
 import com.example.android.architecture.blueprints.todoapp.util.any
-import com.example.android.architecture.blueprints.todoapp.util.capture
-import com.example.android.architecture.blueprints.todoapp.util.mock
-import com.google.common.collect.Lists
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.assertFalse
@@ -79,7 +74,7 @@ class TasksViewModelTest {
         val task3 = Task("Title3", "Description3").apply {
             isCompleted = true
         }
-        tasks = Lists.newArrayList(task1, task2, task3)
+        tasks = listOf(task1, task2, task3)
 
         tasksViewModel.snackbarMessage.removeObservers(TestUtils.TEST_OBSERVER)
 

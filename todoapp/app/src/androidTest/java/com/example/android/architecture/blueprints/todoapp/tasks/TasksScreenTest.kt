@@ -19,33 +19,17 @@ import android.support.test.InstrumentationRegistry
 import android.support.test.InstrumentationRegistry.getTargetContext
 import android.support.test.espresso.Espresso.onView
 import android.support.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
-import android.support.test.espresso.action.ViewActions.click
-import android.support.test.espresso.action.ViewActions.closeSoftKeyboard
-import android.support.test.espresso.action.ViewActions.replaceText
-import android.support.test.espresso.action.ViewActions.typeText
+import android.support.test.espresso.action.ViewActions.*
 import android.support.test.espresso.assertion.ViewAssertions.doesNotExist
 import android.support.test.espresso.assertion.ViewAssertions.matches
-import android.support.test.espresso.matcher.ViewMatchers.hasSibling
-import android.support.test.espresso.matcher.ViewMatchers.isAssignableFrom
-import android.support.test.espresso.matcher.ViewMatchers.isChecked
-import android.support.test.espresso.matcher.ViewMatchers.isDescendantOfA
-import android.support.test.espresso.matcher.ViewMatchers.isDisplayed
-import android.support.test.espresso.matcher.ViewMatchers.withContentDescription
-import android.support.test.espresso.matcher.ViewMatchers.withId
-import android.support.test.espresso.matcher.ViewMatchers.withText
+import android.support.test.espresso.matcher.ViewMatchers.*
 import android.support.test.filters.LargeTest
 import android.support.test.filters.SdkSuppress
 import android.support.test.rule.ActivityTestRule
 import android.support.test.runner.AndroidJUnit4
 import android.view.View
 import android.widget.ListView
-import com.example.android.architecture.blueprints.todoapp.Injection
-import com.example.android.architecture.blueprints.todoapp.R
-import com.example.android.architecture.blueprints.todoapp.ViewModelFactory
-import com.example.android.architecture.blueprints.todoapp.currentActivity
-import com.example.android.architecture.blueprints.todoapp.getToolbarNavigationContentDescription
-import com.example.android.architecture.blueprints.todoapp.rotateOrientation
-import com.google.common.base.Preconditions.checkArgument
+import com.example.android.architecture.blueprints.todoapp.*
 import org.hamcrest.Description
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers.allOf
@@ -95,7 +79,7 @@ import org.junit.runner.RunWith
      * @return Matcher that matches text in the given view
      */
     private fun withItemText(itemText: String): Matcher<View> {
-        checkArgument(itemText.isNotEmpty(), "itemText cannot be null or empty")
+        require(itemText.isNotEmpty()) { "itemText cannot be null or empty" }
         return object : TypeSafeMatcher<View>() {
             override fun matchesSafely(item: View) = allOf(
                     isDescendantOfA(isAssignableFrom(ListView::class.java)),

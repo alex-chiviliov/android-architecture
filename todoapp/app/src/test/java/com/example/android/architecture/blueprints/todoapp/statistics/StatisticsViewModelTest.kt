@@ -22,7 +22,6 @@ import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
 import com.example.android.architecture.blueprints.todoapp.util.capture
-import com.google.common.collect.Lists
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.Is.`is`
 import org.junit.Assert.assertEquals
@@ -65,7 +64,7 @@ class StatisticsViewModelTest {
         val task3 = Task("Title3", "Description3").apply {
             isCompleted = true
         }
-        tasks = Lists.newArrayList(task1, task2, task3)
+        tasks = mutableListOf(task1, task2, task3)
     }
 
     @Test fun loadEmptyTasksFromRepository_EmptyResults() {

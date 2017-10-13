@@ -16,10 +16,8 @@
 package com.example.android.architecture.blueprints.todoapp.data
 
 import android.support.annotation.VisibleForTesting
-
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
-import com.google.common.collect.Lists
-import java.util.LinkedHashMap
+import java.util.*
 
 /**
  * Implementation of a remote data source with static access to the data for easy testing.
@@ -29,7 +27,7 @@ object FakeTasksRemoteDataSource : TasksDataSource {
     private var TASKS_SERVICE_DATA: LinkedHashMap<String, Task> = LinkedHashMap()
 
     override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
-        callback.onTasksLoaded(Lists.newArrayList(TASKS_SERVICE_DATA.values))
+        callback.onTasksLoaded(TASKS_SERVICE_DATA.values.toList())
     }
 
     override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
