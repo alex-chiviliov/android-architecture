@@ -20,20 +20,15 @@ import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.util.any
 import com.example.android.architecture.blueprints.todoapp.util.capture
 import com.example.android.architecture.blueprints.todoapp.util.eq
-import com.google.common.collect.Lists
 import org.hamcrest.CoreMatchers.`is`
 import org.junit.After
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertThat
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.Mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 
 /**
@@ -45,7 +40,7 @@ class TasksRepositoryTest {
     private val TASK_TITLE2 = "title2"
     private val TASK_TITLE3 = "title3"
     private val TASK_DESCRIPTION = "Some task description."
-    private val TASKS = Lists.newArrayList(Task("Title1", "Description1"),
+    private val TASKS = listOf(Task("Title1", "Description1"),
             Task("Title2", "Description2"))
     private lateinit var tasksRepository: TasksRepository
     @Mock private lateinit var tasksRemoteDataSource: TasksDataSource

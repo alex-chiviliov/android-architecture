@@ -8,7 +8,6 @@ ext {
 
     // App dependencies
     supportLibraryVersion = '26.1.0'
-    guavaVersion = '22.0-android'
     junitVersion = '4.12'
     mockitoVersion = '2.7.22'
     hamcrestVersion = '1.3'
