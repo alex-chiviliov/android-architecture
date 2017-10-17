@@ -17,6 +17,7 @@ package com.example.android.architecture.blueprints.todoapp.data.source.local
 
 import android.content.ContentValues
 import android.content.Context
+import android.support.annotation.VisibleForTesting
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_COMPLETED
@@ -95,10 +96,6 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
                 }
             }
         }
-    }
-
-    fun getTaskBlocking(taskId: String): Task? {
-        return runBlocking { getTask(taskId) }
     }
 
     override fun saveTask(task: Task) {
@@ -182,4 +179,11 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
             return INSTANCE ?: TasksLocalDataSource(context).apply { INSTANCE = this }
         }
     }
+
+    /**
+     * A dummy method to avoid occasional "method runBlocking" not found errors
+     * when running Android Instrumentation tests.
+     */
+    @VisibleForTesting
+    fun dummy() = runBlocking {  }
 }
