@@ -26,6 +26,7 @@ import com.example.android.architecture.blueprints.todoapp.data.source.local.Tas
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.TABLE_NAME
 import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.run
+import kotlinx.coroutines.experimental.runBlocking
 
 /**
  * Concrete implementation of a data source as a db.
@@ -94,6 +95,10 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
                 }
             }
         }
+    }
+
+    fun getTaskBlocking(taskId: String): Task? {
+        return runBlocking { getTask(taskId) }
     }
 
     override fun saveTask(task: Task) {
