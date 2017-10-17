@@ -38,7 +38,7 @@ import kotlinx.coroutines.experimental.launch
 class TaskDetailViewModel(
         context: Application,
         private val tasksRepository: TasksRepository,
-        private val dispatcher: CoroutineDispatcher = UI
+        private val dispatcher: CoroutineDispatcher = UI // a different Dispatcher is used in unit tests
 ) : AndroidViewModel(context) {
 
     val task = ObservableField<Task>()
