@@ -16,8 +16,7 @@
 package com.example.android.architecture.blueprints.todoapp.data.source
 
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import java.util.ArrayList
-import java.util.LinkedHashMap
+import java.util.*
 
 /**
  * Concrete implementation to load tasks from the data sources into a cache.
@@ -78,7 +77,7 @@ class TasksRepository(
 
     override fun saveTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
-        cacheAndPerform(task) {
+        cache(task).let {
             tasksRemoteDataSource.saveTask(it)
             tasksLocalDataSource.saveTask(it)
         }
@@ -86,7 +85,7 @@ class TasksRepository(
 
     override fun completeTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
-        cacheAndPerform(task) {
+        cache(task).let {
             it.isCompleted = true
             tasksRemoteDataSource.completeTask(it)
             tasksLocalDataSource.completeTask(it)
@@ -101,7 +100,7 @@ class TasksRepository(
 
     override fun activateTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
-        cacheAndPerform(task) {
+        cache(task).let {
             it.isCompleted = false
             tasksRemoteDataSource.activateTask(it)
             tasksLocalDataSource.activateTask(it)
@@ -128,44 +127,28 @@ class TasksRepository(
      * uses the network data source. This is done to simplify the sample.
      *
      *
-     * Note: [GetTaskCallback.onDataNotAvailable] is fired if both data sources fail to
+     * Note: the null is returned if both data sources fail to
      * get the data.
      */
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
+    override suspend fun getTask(taskId: String): Task? {
         val taskInCache = getTaskWithId(taskId)
 
         // Respond immediately with cache if available
         if (taskInCache != null) {
-            callback.onTaskLoaded(taskInCache)
-            return
+            return taskInCache
         }
 
         // Load from server/persisted if needed.
 
         // Is the task in the local data source? If not, query the network.
-        tasksLocalDataSource.getTask(taskId, object : TasksDataSource.GetTaskCallback {
-            override fun onTaskLoaded(task: Task) {
-                // Do in memory cache update to keep the app UI up to date
-                cacheAndPerform(task) {
-                    callback.onTaskLoaded(it)
-                }
-            }
+        val taskLocal = tasksLocalDataSource.getTask(taskId)
+        if (taskLocal != null) {
+            // Do in memory cache update to keep the app UI up to date
+            return cache(taskLocal)
+        }
 
-            override fun onDataNotAvailable() {
-                tasksRemoteDataSource.getTask(taskId, object : TasksDataSource.GetTaskCallback {
-                    override fun onTaskLoaded(task: Task) {
-                        // Do in memory cache update to keep the app UI up to date
-                        cacheAndPerform(task) {
-                            callback.onTaskLoaded(it)
-                        }
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        val taskRemote = tasksRemoteDataSource.getTask(taskId)
+        return if (taskRemote != null) cache(taskRemote) else null
     }
 
     override fun refreshTasks() {
@@ -201,7 +184,7 @@ class TasksRepository(
     private fun refreshCache(tasks: List<Task>) {
         cachedTasks.clear()
         tasks.forEach {
-            cacheAndPerform(it) {}
+            cache(it)
         }
         cacheIsDirty = false
     }
@@ -215,12 +198,12 @@ class TasksRepository(
 
     private fun getTaskWithId(id: String) = cachedTasks[id]
 
-    private inline fun cacheAndPerform(task: Task, perform: (Task) -> Unit) {
+    private fun cache(task: Task): Task {
         val cachedTask = Task(task.title, task.description, task.id).apply {
             isCompleted = task.isCompleted
         }
         cachedTasks.put(cachedTask.id, cachedTask)
-        perform(cachedTask)
+        return cachedTask
     }
 
     companion object {

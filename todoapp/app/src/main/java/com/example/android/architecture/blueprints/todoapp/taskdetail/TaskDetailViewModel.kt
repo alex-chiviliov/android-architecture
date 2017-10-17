@@ -23,9 +23,12 @@ import android.support.annotation.StringRes
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.SingleLiveEvent
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
 import com.example.android.architecture.blueprints.todoapp.tasks.TasksFragment
+import kotlinx.coroutines.experimental.CoroutineDispatcher
+import kotlinx.coroutines.experimental.CoroutineStart
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.launch
 
 
 /**
@@ -34,8 +37,9 @@ import com.example.android.architecture.blueprints.todoapp.tasks.TasksFragment
  */
 class TaskDetailViewModel(
         context: Application,
-        private val tasksRepository: TasksRepository
-) : AndroidViewModel(context), TasksDataSource.GetTaskCallback {
+        private val tasksRepository: TasksRepository,
+        private val dispatcher: CoroutineDispatcher = UI
+) : AndroidViewModel(context) {
 
     val task = ObservableField<Task>()
     val completed = ObservableBoolean()
@@ -75,25 +79,21 @@ class TaskDetailViewModel(
     }
 
     fun start(taskId: String?) {
-        taskId?.let {
-            isDataLoading = true
-            tasksRepository.getTask(it, this)
+        if (taskId != null) {
+            launch(dispatcher, CoroutineStart.UNDISPATCHED) {
+                isDataLoading = true
+                val task = tasksRepository.getTask(taskId)
+                isDataLoading = false
+                setTask(task)
+            }
         }
     }
 
-    fun setTask(task: Task) {
+    private fun setTask(task: Task?) {
         this.task.set(task)
-        completed.set(task.isCompleted)
-    }
-
-    override fun onTaskLoaded(task: Task) {
-        setTask(task)
-        isDataLoading = false
-    }
-
-    override fun onDataNotAvailable() {
-        task.set(null)
-        isDataLoading = false
+        if (task != null) {
+            completed.set(task.isCompleted)
+        }
     }
 
     fun onRefresh() {

@@ -18,6 +18,7 @@ package com.example.android.architecture.blueprints.todoapp.data.source.remote
 import android.os.Handler
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
+import kotlinx.coroutines.experimental.delay
 
 /**
  * Implementation of the data source that adds a latency simulating network.
@@ -56,17 +57,10 @@ object TasksRemoteDataSource : TasksDataSource {
      * source implementation, this would be fired if the server can't be contacted or the server
      * returns an error.
      */
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
-        val task = TASKS_SERVICE_DATA[taskId]
-
+    override suspend fun getTask(taskId: String): Task? {
         // Simulate network by delaying the execution.
-        with(Handler()) {
-            if (task != null) {
-                postDelayed({ callback.onTaskLoaded(task) }, SERVICE_LATENCY_IN_MILLIS)
-            } else {
-                postDelayed({ callback.onDataNotAvailable() }, SERVICE_LATENCY_IN_MILLIS)
-            }
-        }
+        delay(SERVICE_LATENCY_IN_MILLIS)
+        return TASKS_SERVICE_DATA[taskId]
     }
 
     override fun saveTask(task: Task) {

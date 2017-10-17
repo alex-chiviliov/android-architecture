@@ -22,19 +22,16 @@ import com.example.android.architecture.blueprints.todoapp.data.source.TasksData
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksDbHelper
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksLocalDataSource
 import com.example.android.architecture.blueprints.todoapp.util.any
-import com.example.android.architecture.blueprints.todoapp.util.mock
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.core.Is.`is`
+import org.hamcrest.core.IsEqual
+import org.hamcrest.core.IsNull
 import org.junit.After
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertThat
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 
 /**
  * Integration test for the [TasksDataSource], which uses the [TasksDbHelper].
@@ -59,7 +56,7 @@ import org.mockito.Mockito.verify
         assertNotNull(localDataSource)
     }
 
-    @Test fun saveTask_retrievesTask() {
+    @Test fun saveTask_retrievesTask() = runBlocking<Unit> {
         // Given a new task
         val newTask = Task(TITLE)
 
@@ -68,19 +65,12 @@ import org.mockito.Mockito.verify
             saveTask(newTask)
 
             // Then the task can be retrieved from the persistent repository
-            getTask(newTask.id, object : TasksDataSource.GetTaskCallback {
-                override fun onTaskLoaded(task: Task) {
-                    assertThat(task, `is`(newTask))
-                }
-
-                override fun onDataNotAvailable() {
-                    fail("Callback error")
-                }
-            })
+            val task = getTask(newTask.id)
+            assertThat(task, `is`(newTask))
         }
     }
 
-    @Test fun completeTask_retrievedTaskIsComplete() {
+    @Test fun completeTask_retrievedTaskIsComplete() = runBlocking<Unit> {
         // Given a new task in the persistent repository
         val newTask = Task(TITLE)
         with(localDataSource) {
@@ -90,23 +80,13 @@ import org.mockito.Mockito.verify
             completeTask(newTask)
 
             // Then the task can be retrieved from the persistent repository and is complete
-            getTask(newTask.id, object : TasksDataSource.GetTaskCallback {
-                override fun onTaskLoaded(task: Task) {
-                    assertThat(task, `is`(newTask))
-                    assertThat(task.isCompleted, `is`(true))
-                }
-
-                override fun onDataNotAvailable() {
-                    fail("Callback error")
-                }
-            })
+            val task = getTask(newTask.id)
+            assertThat(task, `is`(newTask))
+            assertThat(task!!.isCompleted, `is`(true))
         }
     }
 
-    @Test fun activateTask_retrievedTaskIsActive() {
-        // Initialize mock for the callback.
-        val callback = mock<TasksDataSource.GetTaskCallback>()
-
+    @Test fun activateTask_retrievedTaskIsActive() = runBlocking<Unit> {
         // Given a new completed task in the persistent repository
         val newTask = Task(TITLE)
         with(localDataSource) {
@@ -117,24 +97,17 @@ import org.mockito.Mockito.verify
             activateTask(newTask)
 
             // Then the task can be retrieved from the persistent repository and is active
-            getTask(newTask.id, callback)
+            assertThat(getTask(newTask.id), IsEqual(newTask))
+            assertThat(newTask.isCompleted, `is`(false))
         }
-        verify(callback, never()).onDataNotAvailable()
-        verify(callback).onTaskLoaded(newTask)
-
-        assertThat(newTask.isCompleted, `is`(false))
     }
 
-    @Test fun clearCompletedTask_taskNotRetrievable() {
-        // Initialize mocks for the callbacks.
-        val callback1 = mock(TasksDataSource.GetTaskCallback::class.java)
-        val callback2 = mock(TasksDataSource.GetTaskCallback::class.java)
-        val callback3 = mock(TasksDataSource.GetTaskCallback::class.java)
-
+    @Test fun clearCompletedTask_taskNotRetrievable() = runBlocking<Unit> {
         // Given 2 new completed tasks and 1 active task in the persistent repository
         val newTask1 = Task(TITLE)
         val newTask2 = Task(TITLE2)
         val newTask3 = Task(TITLE3)
+
         with(localDataSource) {
             saveTask(newTask1)
             completeTask(newTask1)
@@ -145,20 +118,11 @@ import org.mockito.Mockito.verify
             clearCompletedTasks()
 
             // Then the completed tasks cannot be retrieved and the active one can
-            getTask(newTask1.id, callback1)
+            assertThat(getTask(newTask1.id), IsNull())
 
-            verify(callback1).onDataNotAvailable()
-            verify(callback1, never()).onTaskLoaded(newTask1)
+            assertThat(getTask(newTask2.id), IsNull())
 
-            getTask(newTask2.id, callback2)
-
-            verify(callback2).onDataNotAvailable()
-            verify(callback2, never()).onTaskLoaded(newTask1)
-
-            getTask(newTask3.id, callback3)
-
-            verify(callback3, never()).onDataNotAvailable()
-            verify(callback3).onTaskLoaded(newTask3)
+            assertThat(getTask(newTask3.id), IsEqual(newTask3))
         }
     }
 

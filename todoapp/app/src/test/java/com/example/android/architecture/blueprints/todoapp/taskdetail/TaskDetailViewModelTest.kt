@@ -22,10 +22,10 @@ import android.content.Context
 import android.content.res.Resources
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
-import com.example.android.architecture.blueprints.todoapp.util.capture
 import com.example.android.architecture.blueprints.todoapp.util.eq
+import kotlinx.coroutines.experimental.Unconfined
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.CoreMatchers.nullValue
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.Is.`is`
@@ -34,12 +34,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.ArgumentCaptor
-import org.mockito.Captor
 import org.mockito.Mock
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 
 /**
@@ -51,9 +47,6 @@ class TaskDetailViewModelTest {
     @get:Rule var instantExecutorRule = InstantTaskExecutorRule()
     @Mock private lateinit var tasksRepository: TasksRepository
     @Mock private lateinit var context: Application
-    @Mock private lateinit var repositoryCallback: TasksDataSource.GetTaskCallback
-    @Mock private lateinit var viewModelCallback: TasksDataSource.GetTaskCallback
-    @Captor private lateinit var getTaskCallbackCaptor: ArgumentCaptor<TasksDataSource.GetTaskCallback>
     private lateinit var taskDetailViewModel: TaskDetailViewModel
     private lateinit var task: Task
     private val TITLE_TEST = "title"
@@ -71,7 +64,7 @@ class TaskDetailViewModelTest {
         task = Task(TITLE_TEST, DESCRIPTION_TEST)
 
         // Get a reference to the class under test
-        taskDetailViewModel = TaskDetailViewModel(context, tasksRepository)
+        taskDetailViewModel = TaskDetailViewModel(context, tasksRepository, Unconfined)
     }
 
     private fun setupContext() {
@@ -81,7 +74,7 @@ class TaskDetailViewModelTest {
         `when`(context.resources).thenReturn(mock(Resources::class.java))
     }
 
-    @Test fun getActiveTaskFromRepositoryAndLoadIntoView() {
+    @Test fun getActiveTaskFromRepositoryAndLoadIntoView() = runBlocking<Unit> {
         setupViewModelRepositoryCallback()
 
         // Then verify that the view was notified
@@ -89,7 +82,7 @@ class TaskDetailViewModelTest {
         assertEquals(taskDetailViewModel.task.get().description, task.description)
     }
 
-    @Test fun deleteTask() {
+    @Test fun deleteTask() = runBlocking<Unit> {
         setupViewModelRepositoryCallback()
 
         // When the deletion of a task is requested
@@ -99,7 +92,7 @@ class TaskDetailViewModelTest {
         verify<TasksRepository>(tasksRepository).deleteTask(task.id)
     }
 
-    @Test fun completeTask() {
+    @Test fun completeTask() = runBlocking<Unit> {
         setupViewModelRepositoryCallback()
 
         // When the ViewModel is asked to complete the task
@@ -111,7 +104,7 @@ class TaskDetailViewModelTest {
                 `is`(R.string.task_marked_complete))
     }
 
-    @Test fun activateTask() {
+    @Test fun activateTask() = runBlocking<Unit> {
         setupViewModelRepositoryCallback()
 
         // When the ViewModel is asked to complete the task
@@ -123,32 +116,27 @@ class TaskDetailViewModelTest {
                 `is`(R.string.task_marked_active))
     }
 
-    @Test fun TaskDetailViewModel_repositoryError() {
-        // Given an initialized ViewModel with an active task
-        viewModelCallback = mock(TasksDataSource.GetTaskCallback::class.java)
+    @Test fun TaskDetailViewModel_repositoryError() = runBlocking<Unit> {
+        // When the repository returns an error
+        `when`(tasksRepository.getTask(eq(task.id))).thenReturn(null) // Trigger callback error
 
+        // Given an initialized ViewModel with an active task
         taskDetailViewModel.start(task.id)
 
-        // Use a captor to get a reference for the callback.
-        verify<TasksRepository>(tasksRepository).getTask(eq(task.id), capture(getTaskCallbackCaptor))
-
-        // When the repository returns an error
-        getTaskCallbackCaptor.value.onDataNotAvailable() // Trigger callback error
+        verify<TasksRepository>(tasksRepository).getTask(eq(task.id))
 
         // Then verify that data is not available
         assertFalse(taskDetailViewModel.isDataAvailable)
     }
 
-    private fun setupViewModelRepositoryCallback() {
+    private suspend fun setupViewModelRepositoryCallback() {
         // Given an initialized ViewModel with an active task
-        viewModelCallback = mock(TasksDataSource.GetTaskCallback::class.java)
+        `when`(tasksRepository.getTask(eq(task.id))).thenReturn(task)
 
         taskDetailViewModel.start(task.id)
 
-        // Use a captor to get a reference for the callback.
-        verify<TasksRepository>(tasksRepository).getTask(eq(task.id), capture(getTaskCallbackCaptor))
-
-        getTaskCallbackCaptor.value.onTaskLoaded(task) // Trigger callback
+        // Verify that the task repository has been called
+        verify(tasksRepository).getTask(eq(task.id))
     }
 
     @Test fun updateSnackbar_nullValue() {
