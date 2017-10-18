@@ -26,9 +26,7 @@ object FakeTasksRemoteDataSource : TasksDataSource {
 
     private var TASKS_SERVICE_DATA: LinkedHashMap<String, Task> = LinkedHashMap()
 
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
-        callback.onTasksLoaded(TASKS_SERVICE_DATA.values.toList())
-    }
+    override suspend fun getTasks(): List<Task>? = TASKS_SERVICE_DATA.values.toList()
 
     override suspend fun getTask(taskId: String): Task? = TASKS_SERVICE_DATA[taskId]
 

@@ -15,7 +15,6 @@
  */
 package com.example.android.architecture.blueprints.todoapp.data.source.remote
 
-import android.os.Handler
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import kotlinx.coroutines.experimental.delay
@@ -40,20 +39,18 @@ object TasksRemoteDataSource : TasksDataSource {
     }
 
     /**
-     * Note: [LoadTasksCallback.onDataNotAvailable] is never fired. In a real remote data
+     * Note: [null] is never returned. In a real remote data
      * source implementation, this would be fired if the server can't be contacted or the server
      * returns an error.
      */
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
+    override suspend fun getTasks(): List<Task>? {
         // Simulate network by delaying the execution.
-        val tasks: List<Task> = TASKS_SERVICE_DATA.values.toList()
-        Handler().postDelayed({
-            callback.onTasksLoaded(tasks)
-        }, SERVICE_LATENCY_IN_MILLIS)
+        delay(SERVICE_LATENCY_IN_MILLIS)
+        return TASKS_SERVICE_DATA.values.toList()
     }
 
     /**
-     * Note: [GetTaskCallback.onDataNotAvailable] is never fired. In a real remote data
+     * Note: [null] is never returned. In a real remote data
      * source implementation, this would be fired if the server can't be contacted or the server
      * returns an error.
      */

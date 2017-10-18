@@ -47,31 +47,27 @@ class TasksRepository(
      * available first.
      *
      *
-     * Note: [LoadTasksCallback.onDataNotAvailable] is fired if all data sources fail to
+     * Note: a  null [List] is returned if all data sources fail to
      * get the data.
      */
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
+    override suspend fun getTasks(): List<Task>? {
         // Respond immediately with cache if available and not dirty
         if (cachedTasks.isNotEmpty() && !cacheIsDirty) {
-            callback.onTasksLoaded(ArrayList(cachedTasks.values))
-            return
+            return cachedTasks.values.toList()
         }
 
         if (cacheIsDirty) {
             // If the cache is dirty we need to fetch new data from the network.
-            getTasksFromRemoteDataSource(callback)
+            return getTasksFromRemoteDataSource()
         } else {
             // Query the local storage if available. If not, query the network.
-            tasksLocalDataSource.getTasks(object : TasksDataSource.LoadTasksCallback {
-                override fun onTasksLoaded(tasks: List<Task>) {
-                    refreshCache(tasks)
-                    callback.onTasksLoaded(ArrayList(cachedTasks.values))
-                }
-
-                override fun onDataNotAvailable() {
-                    getTasksFromRemoteDataSource(callback)
-                }
-            })
+            val tasks = tasksLocalDataSource.getTasks()
+            if (tasks != null) {
+                refreshCache(tasks)
+                return cachedTasks.values.toList()
+            } else {
+                return getTasksFromRemoteDataSource()
+            }
         }
     }
 
@@ -167,18 +163,15 @@ class TasksRepository(
         cachedTasks.remove(taskId)
     }
 
-    private fun getTasksFromRemoteDataSource(callback: TasksDataSource.LoadTasksCallback) {
-        tasksRemoteDataSource.getTasks(object : TasksDataSource.LoadTasksCallback {
-            override fun onTasksLoaded(tasks: List<Task>) {
-                refreshCache(tasks)
-                refreshLocalDataSource(tasks)
-                callback.onTasksLoaded(ArrayList(cachedTasks.values))
-            }
-
-            override fun onDataNotAvailable() {
-                callback.onDataNotAvailable()
-            }
-        })
+    private suspend fun getTasksFromRemoteDataSource(): List<Task>? {
+        val tasks = tasksRemoteDataSource.getTasks()
+        if (tasks != null) {
+            refreshCache(tasks)
+            refreshLocalDataSource(tasks)
+            return cachedTasks.values.toList()
+        } else {
+            return null
+        }
     }
 
     private fun refreshCache(tasks: List<Task>) {

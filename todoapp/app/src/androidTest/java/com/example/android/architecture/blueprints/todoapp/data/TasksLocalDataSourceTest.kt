@@ -21,7 +21,6 @@ import android.support.test.runner.AndroidJUnit4
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksDbHelper
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksLocalDataSource
-import com.example.android.architecture.blueprints.todoapp.util.any
 import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.core.Is.`is`
 import org.hamcrest.core.IsEqual
@@ -31,7 +30,6 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.*
 
 /**
  * Integration test for the [TasksDataSource], which uses the [TasksDbHelper].
@@ -126,9 +124,7 @@ import org.mockito.Mockito.*
         }
     }
 
-    @Test fun deleteAllTasks_emptyListOfRetrievedTask() {
-        val callback = mock(TasksDataSource.LoadTasksCallback::class.java)
-
+    @Test fun deleteAllTasks_emptyListOfRetrievedTask() = runBlocking<Unit> {
         // Given a new task in the persistent repository and a mocked callback
         val newTask = Task(TITLE)
 
@@ -138,15 +134,12 @@ import org.mockito.Mockito.*
             // When all tasks are deleted
             deleteAllTasks()
 
-            // Then the retrieved tasks is an empty list
-            getTasks(callback)
+            // Then the retrieved tasks is a null list
+            assertThat(getTasks(), IsNull())
         }
-        verify<TasksDataSource.LoadTasksCallback>(callback).onDataNotAvailable()
-        verify<TasksDataSource.LoadTasksCallback>(callback, never())
-                .onTasksLoaded(any<List<Task>>())
     }
 
-    @Test fun getTasks_retrieveSavedTasks() {
+    @Test fun getTasks_retrieveSavedTasks() = runBlocking<Unit> {
         // Given 2 new tasks in the persistent repository
         val newTask1 = Task(TITLE)
         val newTask2 = Task(TITLE)
@@ -155,29 +148,22 @@ import org.mockito.Mockito.*
             saveTask(newTask1)
             saveTask(newTask2)
             // Then the tasks can be retrieved from the persistent repository
-            getTasks(object : TasksDataSource.LoadTasksCallback {
-                override fun onTasksLoaded(tasks: List<Task>) {
-                    assertNotNull(tasks)
-                    assertTrue(tasks.size >= 2)
+            val tasks = getTasks()
+            assertNotNull(tasks)
+            assertTrue(tasks!!.size >= 2)
 
-                    var newTask1IdFound = false
-                    var newTask2IdFound = false
-                    for ((_, _, id) in tasks) {
-                        if (id == newTask1.id) {
-                            newTask1IdFound = true
-                        }
-                        if (id == newTask2.id) {
-                            newTask2IdFound = true
-                        }
-                    }
-                    assertTrue(newTask1IdFound)
-                    assertTrue(newTask2IdFound)
+            var newTask1IdFound = false
+            var newTask2IdFound = false
+            for ((_, _, id) in tasks) {
+                if (id == newTask1.id) {
+                    newTask1IdFound = true
                 }
-
-                override fun onDataNotAvailable() {
-                    fail()
+                if (id == newTask2.id) {
+                    newTask2IdFound = true
                 }
-            })
+            }
+            assertTrue(newTask1IdFound)
+            assertTrue(newTask2IdFound)
         }
     }
 }

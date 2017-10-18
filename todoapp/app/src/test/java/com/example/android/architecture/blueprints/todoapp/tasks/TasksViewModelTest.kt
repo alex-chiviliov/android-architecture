@@ -25,10 +25,13 @@ import com.example.android.architecture.blueprints.todoapp.R.string.successfully
 import com.example.android.architecture.blueprints.todoapp.TestUtils
 import com.example.android.architecture.blueprints.todoapp.addedittask.AddEditTaskActivity
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource.LoadTasksCallback
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
-import com.example.android.architecture.blueprints.todoapp.util.*
-import com.example.android.architecture.blueprints.todoapp.util.any
+import com.example.android.architecture.blueprints.todoapp.util.ADD_EDIT_RESULT_OK
+import com.example.android.architecture.blueprints.todoapp.util.DELETE_RESULT_OK
+import com.example.android.architecture.blueprints.todoapp.util.EDIT_RESULT_OK
+import com.example.android.architecture.blueprints.todoapp.util.mock
+import kotlinx.coroutines.experimental.Unconfined
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.assertFalse
@@ -36,12 +39,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.ArgumentCaptor
-import org.mockito.Captor
 import org.mockito.Mock
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 
 /**
@@ -52,7 +51,6 @@ class TasksViewModelTest {
     @get:Rule var instantExecutorRule = InstantTaskExecutorRule()
     @Mock private lateinit var tasksRepository: TasksRepository
     @Mock private lateinit var context: Application
-    @Captor private lateinit var loadTasksCallbackCaptor: ArgumentCaptor<LoadTasksCallback>
     private lateinit var tasksViewModel: TasksViewModel
     private lateinit var tasks: List<Task>
 
@@ -64,7 +62,7 @@ class TasksViewModelTest {
         setupContext()
 
         // Get a reference to the class under test
-        tasksViewModel = TasksViewModel(context, tasksRepository)
+        tasksViewModel = TasksViewModel(context, tasksRepository, Unconfined)
 
         // We initialise the tasks to 3, with one active and two completed
         val task1 = Task("Title1", "Description1")
@@ -92,20 +90,13 @@ class TasksViewModelTest {
         `when`(context.resources).thenReturn(mock(Resources::class.java))
     }
 
-    @Test fun loadAllTasksFromRepository_dataLoaded() {
+    @Test fun loadAllTasksFromRepository_dataLoaded() = runBlocking<Unit> {
         with(tasksViewModel) {
             // Given an initialized TasksViewModel with initialized tasks
+            `when`(tasksRepository.getTasks()).thenReturn(tasks)
             // When loading of Tasks is requested
             currentFiltering = TasksFilterType.ALL_TASKS
             loadTasks(true)
-
-            // Callback is captured and invoked with stubbed tasks
-            verify<TasksRepository>(tasksRepository).getTasks(capture(loadTasksCallbackCaptor))
-
-
-            // Then progress indicator is shown
-            assertTrue(dataLoading.get())
-            loadTasksCallbackCaptor.value.onTasksLoaded(tasks)
 
             // Then progress indicator is hidden
             assertFalse(dataLoading.get())
@@ -116,16 +107,13 @@ class TasksViewModelTest {
         }
     }
 
-    @Test fun loadActiveTasksFromRepositoryAndLoadIntoView() {
+    @Test fun loadActiveTasksFromRepositoryAndLoadIntoView() = runBlocking<Unit> {
         with(tasksViewModel) {
             // Given an initialized TasksViewModel with initialized tasks
+            `when`(tasksRepository.getTasks()).thenReturn(tasks)
             // When loading of Tasks is requested
             currentFiltering = TasksFilterType.ACTIVE_TASKS
             loadTasks(true)
-
-            // Callback is captured and invoked with stubbed tasks
-            verify<TasksRepository>(tasksRepository).getTasks(capture(loadTasksCallbackCaptor))
-            loadTasksCallbackCaptor.value.onTasksLoaded(tasks)
 
             // Then progress indicator is hidden
             assertFalse(dataLoading.get())
@@ -136,16 +124,13 @@ class TasksViewModelTest {
         }
     }
 
-    @Test fun loadCompletedTasksFromRepositoryAndLoadIntoView() {
+    @Test fun loadCompletedTasksFromRepositoryAndLoadIntoView() = runBlocking<Unit> {
         with(tasksViewModel) {
             // Given an initialized TasksViewModel with initialized tasks
+            `when`(tasksRepository.getTasks()).thenReturn(tasks)
             // When loading of Tasks is requested
             currentFiltering = TasksFilterType.COMPLETED_TASKS
             loadTasks(true)
-
-            // Callback is captured and invoked with stubbed tasks
-            verify<TasksRepository>(tasksRepository).getTasks(capture(loadTasksCallbackCaptor))
-            loadTasksCallbackCaptor.value.onTasksLoaded(tasks)
 
             // Then progress indicator is hidden
             assertFalse(dataLoading.get())
@@ -171,13 +156,13 @@ class TasksViewModelTest {
         verify<Observer<Void>>(observer).onChanged(null)
     }
 
-    @Test fun clearCompletedTasks_ClearsTasks() {
+    @Test fun clearCompletedTasks_ClearsTasks() = runBlocking<Unit> {
         // When completed tasks are cleared
         tasksViewModel.clearCompletedTasks()
 
         // Then repository is called and the view is notified
         verify<TasksRepository>(tasksRepository).clearCompletedTasks()
-        verify<TasksRepository>(tasksRepository).getTasks(any<LoadTasksCallback>())
+        verify<TasksRepository>(tasksRepository).getTasks()
     }
 
     @Test fun handleActivityResult_editOK() {

@@ -22,8 +22,11 @@ import android.databinding.ObservableBoolean
 import android.databinding.ObservableField
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
+import kotlinx.coroutines.experimental.CoroutineDispatcher
+import kotlinx.coroutines.experimental.CoroutineStart
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.launch
 
 /**
  * Exposes the data to be used in the statistics screen.
@@ -36,7 +39,8 @@ import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepo
  */
 class StatisticsViewModel(
         private val context: Application,
-        private val tasksRepository: TasksRepository
+        private val tasksRepository: TasksRepository,
+        private val dispatcher: CoroutineDispatcher = UI
 ) : AndroidViewModel(context) {
 
     val dataLoading = ObservableBoolean(false)
@@ -54,21 +58,18 @@ class StatisticsViewModel(
         loadStatistics()
     }
 
-    fun loadStatistics() {
+    fun loadStatistics() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         dataLoading.set(true)
-        tasksRepository.getTasks(object : TasksDataSource.LoadTasksCallback {
-            override fun onTasksLoaded(tasks: List<Task>) {
-                error.set(false)
-                computeStats(tasks)
-            }
-
-            override fun onDataNotAvailable() {
-                error.set(true)
-                numberOfActiveTasks = 0
-                numberOfCompletedTasks = 0
-                updateDataBindingObservables()
-            }
-        })
+        val tasks = tasksRepository.getTasks()
+        if (tasks != null) {
+            error.set(false)
+            computeStats(tasks)
+        } else {
+            error.set(true)
+            numberOfActiveTasks = 0
+            numberOfCompletedTasks = 0
+            updateDataBindingObservables()
+        }
     }
 
     /**

@@ -40,35 +40,34 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
      * Note: [LoadTasksCallback.onDataNotAvailable] is fired if the database doesn't exist
      * or the table is empty.
      */
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
-        val tasks = ArrayList<Task>()
-        val db = dbHelper.readableDatabase
+    override suspend fun getTasks(): List<Task>? = run(CommonPool) {
+        dbHelper.readableDatabase.use { db ->
 
-        val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
-                COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
+            val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
+                    COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
 
-        val cursor = db.query(
-                TABLE_NAME, projection, null, null, null, null, null)
+            db.query(TABLE_NAME, projection, null, null, null, null, null).use { cursor ->
 
-        with(cursor) {
-            while (moveToNext()) {
-                val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
-                val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
-                val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
-                val task = Task(title, description, itemId).apply {
-                    isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                with(cursor) {
+                    val tasks = mutableListOf<Task>()
+                    while (moveToNext()) {
+                        val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
+                        val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
+                        val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
+                        val task = Task(title, description, itemId).apply {
+                            isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                        }
+                        tasks.add(task)
+                    }
+                    if (tasks.isNotEmpty()) {
+                        tasks
+                    } else {
+                        // This will be returned if the table is new or just empty.
+                        null
+                    }
                 }
-                tasks.add(task)
             }
-            if (tasks.isNotEmpty()) {
-                callback.onTasksLoaded(tasks)
-            } else {
-                // This will be called if the table is new or just empty.
-                callback.onDataNotAvailable()
-            }
-            close()
         }
-        db.close()
     }
 
     /**
@@ -76,11 +75,13 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
      */
      override suspend fun getTask(taskId: String): Task? = run(CommonPool) {
         dbHelper.readableDatabase.use { db ->
+
             val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
                     COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
 
             db.query(TABLE_NAME, projection, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(taskId), null,
                     null, null).use { cursor ->
+
                 with(cursor) {
                     if (moveToFirst()) {
                         val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
