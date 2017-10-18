@@ -30,10 +30,7 @@ object FakeTasksRemoteDataSource : TasksDataSource {
         callback.onTasksLoaded(TASKS_SERVICE_DATA.values.toList())
     }
 
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
-        val task = TASKS_SERVICE_DATA[taskId]
-        task?.let { callback.onTaskLoaded(it) }
-    }
+    override suspend fun getTask(taskId: String): Task? = TASKS_SERVICE_DATA[taskId]
 
     override fun saveTask(task: Task) {
         TASKS_SERVICE_DATA.put(task.id, task)

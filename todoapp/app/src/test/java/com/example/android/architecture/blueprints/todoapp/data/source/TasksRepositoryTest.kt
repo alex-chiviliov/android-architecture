@@ -20,7 +20,9 @@ import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.util.any
 import com.example.android.architecture.blueprints.todoapp.util.capture
 import com.example.android.architecture.blueprints.todoapp.util.eq
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.core.IsNull
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -46,11 +48,9 @@ class TasksRepositoryTest {
     @Mock private lateinit var tasksRemoteDataSource: TasksDataSource
     @Mock private lateinit var tasksLocalDataSource: TasksDataSource
     @Mock private lateinit var context: Context
-    @Mock private lateinit var getTaskCallback: TasksDataSource.GetTaskCallback
     @Mock private lateinit var loadTasksCallback: TasksDataSource.LoadTasksCallback
     @Captor private lateinit var tasksCallbackCaptor:
             ArgumentCaptor<TasksDataSource.LoadTasksCallback>
-    @Captor private lateinit var taskCallbackCaptor: ArgumentCaptor<TasksDataSource.GetTaskCallback>
 
     @Before fun setupTasksRepository() {
         // Mockito has a very convenient way to inject mocks by using the @Mock annotation. To
@@ -174,12 +174,12 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun getTask_requestsSingleTaskFromLocalDataSource() {
+    @Test fun getTask_requestsSingleTaskFromLocalDataSource() = runBlocking<Unit> {
         // When a task is requested from the tasks repository
-        tasksRepository.getTask(TASK_TITLE, getTaskCallback)
+        tasksRepository.getTask(TASK_TITLE)
 
         // Then the task is loaded from the database
-        verify(tasksLocalDataSource).getTask(eq(TASK_TITLE), any<TasksDataSource.GetTaskCallback>())
+        verify(tasksLocalDataSource).getTask(eq(TASK_TITLE))
     }
 
     @Test fun deleteCompletedTasks_deleteCompletedTasksToServiceAPIUpdatesCache() {
@@ -291,21 +291,24 @@ class TasksRepositoryTest {
         verify(loadTasksCallback).onDataNotAvailable()
     }
 
-    @Test fun getTaskWithBothDataSourcesUnavailable_firesOnDataUnavailable() {
+    @Test fun getTaskWithBothDataSourcesUnavailable_firesOnDataUnavailable() = runBlocking<Unit> {
         // Given a task id
         val taskId = "123"
 
-        // When calling getTask in the repository
-        tasksRepository.getTask(taskId, getTaskCallback)
-
-        // And the local data source has no data available
-        setTaskNotAvailable(tasksLocalDataSource, taskId)
+        // When the local data source has no data available
+        `when`(tasksLocalDataSource.getTask(eq(taskId))).thenReturn(null)
 
         // And the remote data source has no data available
-        setTaskNotAvailable(tasksRemoteDataSource, taskId)
+        `when`(tasksRemoteDataSource.getTask(eq(taskId))).thenReturn(null)
 
         // Verify no data is returned
-        verify(getTaskCallback).onDataNotAvailable()
+        assertThat(tasksRepository.getTask(taskId), IsNull())
+
+        // Verify that local data source has been called
+        verify(tasksLocalDataSource).getTask(eq(taskId))
+
+        // Verify that local data source has been called
+        verify(tasksRemoteDataSource).getTask(eq(taskId))
     }
 
     @Test fun getTasks_refreshesLocalDataSource() {
@@ -355,15 +358,5 @@ class TasksRepositoryTest {
     private fun setTasksAvailable(dataSource: TasksDataSource, tasks: List<Task>) {
         verify(dataSource).getTasks(capture(tasksCallbackCaptor))
         tasksCallbackCaptor.value.onTasksLoaded(tasks)
-    }
-
-    private fun setTaskNotAvailable(dataSource: TasksDataSource, taskId: String) {
-        verify(dataSource).getTask(eq(taskId), capture(taskCallbackCaptor))
-        taskCallbackCaptor.value.onDataNotAvailable()
-    }
-
-    private fun setTaskAvailable(dataSource: TasksDataSource, task: Task) {
-        verify(dataSource).getTask(eq(task.id), capture(taskCallbackCaptor))
-        taskCallbackCaptor.value.onTaskLoaded(task)
     }
 }

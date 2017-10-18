@@ -23,8 +23,11 @@ import android.support.annotation.StringRes
 import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.SingleLiveEvent
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
+import kotlinx.coroutines.experimental.CoroutineDispatcher
+import kotlinx.coroutines.experimental.CoroutineStart
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.launch
 
 /**
  * ViewModel for the Add/Edit screen.
@@ -37,8 +40,9 @@ import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepo
  */
 class AddEditTaskViewModel(
         context: Application,
-        private val tasksRepository: TasksRepository
-) : AndroidViewModel(context), TasksDataSource.GetTaskCallback {
+        private val tasksRepository: TasksRepository,
+        private val dispatcher: CoroutineDispatcher = UI // a different Dispatcher is used in unit tests
+) : AndroidViewModel(context) {
 
     val title = ObservableField<String>()
     val description = ObservableField<String>()
@@ -61,25 +65,23 @@ class AddEditTaskViewModel(
             // No need to populate, it's a new task or it already has data
             return
         }
-        dataLoading.set(true)
-        taskId?.let {
-            tasksRepository.getTask(it, this)
+
+        if (taskId != null) {
+            launch(dispatcher, CoroutineStart.UNDISPATCHED) {
+                dataLoading.set(true)
+                val task = tasksRepository.getTask(taskId)
+                dataLoading.set(false)
+                if (task != null) {
+                    title.set(task.title)
+                    description.set(task.description)
+                    taskCompleted = task.isCompleted
+                    isDataLoaded = true
+
+                    // Note that there's no need to notify that the values changed because we're using
+                    // ObservableFields.
+                }
+            }
         }
-    }
-
-    override fun onTaskLoaded(task: Task) {
-        title.set(task.title)
-        description.set(task.description)
-        taskCompleted = task.isCompleted
-        dataLoading.set(false)
-        isDataLoaded = true
-
-        // Note that there's no need to notify that the values changed because we're using
-        // ObservableFields.
-    }
-
-    override fun onDataNotAvailable() {
-        dataLoading.set(false)
     }
 
     // Called when clicking on fab.

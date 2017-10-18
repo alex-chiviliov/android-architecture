@@ -17,6 +17,7 @@ package com.example.android.architecture.blueprints.todoapp.data.source.local
 
 import android.content.ContentValues
 import android.content.Context
+import android.support.annotation.VisibleForTesting
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_COMPLETED
@@ -24,6 +25,9 @@ import com.example.android.architecture.blueprints.todoapp.data.source.local.Tas
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_ENTRY_ID
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_TITLE
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.TABLE_NAME
+import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.run
+import kotlinx.coroutines.experimental.runBlocking
 
 /**
  * Concrete implementation of a data source as a db.
@@ -68,34 +72,30 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
     }
 
     /**
-     * Note: [GetTaskCallback.onDataNotAvailable] is fired if the [Task] isn't
-     * found.
+     * Note: the null is returned if the [Task] isn't found.
      */
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
-        val db = dbHelper.readableDatabase
+     override suspend fun getTask(taskId: String): Task? = run(CommonPool) {
+        dbHelper.readableDatabase.use { db ->
+            val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
+                    COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
 
-        val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
-                COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
-
-        val cursor = db.query(
-                TABLE_NAME, projection, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(taskId), null,
-                null, null)
-
-        with(cursor) {
-            if (moveToFirst()) {
-                val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
-                val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
-                val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
-                val task = Task(title, description, itemId).apply {
-                    isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+            db.query(TABLE_NAME, projection, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(taskId), null,
+                    null, null).use { cursor ->
+                with(cursor) {
+                    if (moveToFirst()) {
+                        val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
+                        val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
+                        val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
+                        val task = Task(title, description, itemId).apply {
+                            isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                        }
+                        task
+                    } else {
+                        null
+                    }
                 }
-                callback.onTaskLoaded(task)
-            } else {
-                callback.onDataNotAvailable()
             }
-            close()
         }
-        db.close()
     }
 
     override fun saveTask(task: Task) {
@@ -179,4 +179,11 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
             return INSTANCE ?: TasksLocalDataSource(context).apply { INSTANCE = this }
         }
     }
+
+    /**
+     * A dummy method to avoid occasional "method runBlocking" not found errors
+     * when running Android Instrumentation tests.
+     */
+    @VisibleForTesting
+    fun dummy() = runBlocking {  }
 }

@@ -35,16 +35,9 @@ interface TasksDataSource {
         fun onDataNotAvailable()
     }
 
-    interface GetTaskCallback {
-
-        fun onTaskLoaded(task: Task)
-
-        fun onDataNotAvailable()
-    }
-
     fun getTasks(callback: LoadTasksCallback)
 
-    fun getTask(taskId: String, callback: GetTaskCallback)
+    suspend fun getTask(taskId: String): Task?
 
     fun saveTask(task: Task)
 
