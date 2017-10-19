@@ -32,7 +32,7 @@ interface TasksDataSource {
 
     suspend fun getTask(taskId: String): Task?
 
-    fun saveTask(task: Task)
+    suspend fun saveTask(task: Task)
 
     fun completeTask(task: Task)
 

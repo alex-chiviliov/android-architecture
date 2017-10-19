@@ -85,11 +85,11 @@ class AddEditTaskViewModel(
     }
 
     // Called when clicking on fab.
-    fun saveTask() {
+    fun saveTask() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         val task = Task(title.get(), description.get())
         if (task.isEmpty) {
             showSnackbarMessage(R.string.empty_task_message)
-            return
+            return@launch
         }
         if (isNewTask) {
             createTask(task)
@@ -102,12 +102,12 @@ class AddEditTaskViewModel(
     }
 
 
-    private fun createTask(newTask: Task) {
+    private suspend fun createTask(newTask: Task) {
         tasksRepository.saveTask(newTask)
         taskUpdatedEvent.call()
     }
 
-    private fun updateTask(task: Task) {
+    private suspend fun updateTask(task: Task) {
         if (isNewTask) {
             throw RuntimeException("updateTask() was called but task is new.")
         }

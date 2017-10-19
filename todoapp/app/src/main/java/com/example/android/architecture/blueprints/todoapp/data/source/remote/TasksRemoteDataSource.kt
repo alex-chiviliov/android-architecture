@@ -60,8 +60,8 @@ object TasksRemoteDataSource : TasksDataSource {
         return TASKS_SERVICE_DATA[taskId]
     }
 
-    override fun saveTask(task: Task) {
-        TASKS_SERVICE_DATA.put(task.id, task)
+    override suspend fun saveTask(task: Task) {
+        TASKS_SERVICE_DATA[task.id] = task
     }
 
     override fun completeTask(task: Task) {

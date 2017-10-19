@@ -54,7 +54,7 @@ class AddEditTaskViewModelTest {
         addEditTaskViewModel = AddEditTaskViewModel(mock<Application>(), tasksRepository, Unconfined)
     }
 
-    @Test fun saveNewTaskToRepository_showsSuccessMessageUi() {
+    @Test fun saveNewTaskToRepository_showsSuccessMessageUi() = runBlocking<Unit> {
         // When the ViewModel is asked to save a task
         with(addEditTaskViewModel) {
             description.set("Some Task Description")

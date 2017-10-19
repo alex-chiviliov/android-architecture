@@ -99,7 +99,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun saveTask(task: Task) {
+    override suspend fun saveTask(task: Task) = run(CommonPool) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_ENTRY_ID, task.id)
             put(COLUMN_NAME_TITLE, task.title)

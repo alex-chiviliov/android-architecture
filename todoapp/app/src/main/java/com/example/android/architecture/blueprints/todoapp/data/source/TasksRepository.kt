@@ -71,7 +71,7 @@ class TasksRepository(
         }
     }
 
-    override fun saveTask(task: Task) {
+    override suspend fun saveTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
         cache(task).let {
             tasksRemoteDataSource.saveTask(it)
@@ -182,7 +182,7 @@ class TasksRepository(
         cacheIsDirty = false
     }
 
-    private fun refreshLocalDataSource(tasks: List<Task>) {
+    private suspend fun refreshLocalDataSource(tasks: List<Task>) {
         tasksLocalDataSource.deleteAllTasks()
         for (task in tasks) {
             tasksLocalDataSource.saveTask(task)
