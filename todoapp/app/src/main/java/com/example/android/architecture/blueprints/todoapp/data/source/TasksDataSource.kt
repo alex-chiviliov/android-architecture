@@ -28,14 +28,7 @@ import com.example.android.architecture.blueprints.todoapp.data.Task
  */
 interface TasksDataSource {
 
-    interface LoadTasksCallback {
-
-        fun onTasksLoaded(tasks: List<Task>)
-
-        fun onDataNotAvailable()
-    }
-
-    fun getTasks(callback: LoadTasksCallback)
+    suspend fun getTasks(): List<Task>?
 
     suspend fun getTask(taskId: String): Task?
 

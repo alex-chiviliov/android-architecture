@@ -18,12 +18,7 @@ package com.example.android.architecture.blueprints.todoapp.tasks
 import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
 import android.content.Context
-import android.databinding.BaseObservable
-import android.databinding.Bindable
-import android.databinding.ObservableArrayList
-import android.databinding.ObservableBoolean
-import android.databinding.ObservableField
-import android.databinding.ObservableList
+import android.databinding.*
 import android.graphics.drawable.Drawable
 import android.support.annotation.DrawableRes
 import android.support.annotation.StringRes
@@ -36,6 +31,10 @@ import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepo
 import com.example.android.architecture.blueprints.todoapp.util.ADD_EDIT_RESULT_OK
 import com.example.android.architecture.blueprints.todoapp.util.DELETE_RESULT_OK
 import com.example.android.architecture.blueprints.todoapp.util.EDIT_RESULT_OK
+import kotlinx.coroutines.experimental.CoroutineDispatcher
+import kotlinx.coroutines.experimental.CoroutineStart
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.launch
 
 
 /**
@@ -48,7 +47,8 @@ import com.example.android.architecture.blueprints.todoapp.util.EDIT_RESULT_OK
  */
 class TasksViewModel(
         context: Application,
-        private val tasksRepository: TasksRepository
+        private val tasksRepository: TasksRepository,
+        private val dispatcher: CoroutineDispatcher = UI
 ) : AndroidViewModel(context) {
 
     private val isDataLoadingError = ObservableBoolean(false)
@@ -168,7 +168,7 @@ class TasksViewModel(
      * *
      * @param showLoadingUI Pass in true to display a loading icon in the UI
      */
-    private fun loadTasks(forceUpdate: Boolean, showLoadingUI: Boolean) {
+    private fun loadTasks(forceUpdate: Boolean, showLoadingUI: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         if (showLoadingUI) {
             dataLoading.set(true)
         }
@@ -176,35 +176,32 @@ class TasksViewModel(
             tasksRepository.refreshTasks()
         }
 
-        tasksRepository.getTasks(object : TasksDataSource.LoadTasksCallback {
-            override fun onTasksLoaded(tasks: List<Task>) {
-                val tasksToShow: List<Task>
+        val tasks = tasksRepository.getTasks()
+        if (tasks != null) {
+            val tasksToShow: List<Task>
 
-                // We filter the tasks based on the requestType
-                when (currentFiltering) {
-                    TasksFilterType.ALL_TASKS ->
-                        tasksToShow = tasks
-                    TasksFilterType.ACTIVE_TASKS ->
-                        tasksToShow = tasks.filter { it.isActive }
-                    TasksFilterType.COMPLETED_TASKS ->
-                        tasksToShow = tasks.filter { it.isCompleted }
-                }
-
-                if (showLoadingUI) {
-                    dataLoading.set(false)
-                }
-                isDataLoadingError.set(false)
-
-                with(items) {
-                    clear()
-                    addAll(tasksToShow)
-                    empty.set(isEmpty())
-                }
+            // We filter the tasks based on the requestType
+            when (currentFiltering) {
+                TasksFilterType.ALL_TASKS ->
+                    tasksToShow = tasks
+                TasksFilterType.ACTIVE_TASKS ->
+                    tasksToShow = tasks.filter { it.isActive }
+                TasksFilterType.COMPLETED_TASKS ->
+                    tasksToShow = tasks.filter { it.isCompleted }
             }
 
-            override fun onDataNotAvailable() {
-                isDataLoadingError.set(true)
+            if (showLoadingUI) {
+                dataLoading.set(false)
             }
-        })
+            isDataLoadingError.set(false)
+
+            with(items) {
+                clear()
+                addAll(tasksToShow)
+                empty.set(isEmpty())
+            }
+        } else {
+            isDataLoadingError.set(true)
+        }
     }
 }
