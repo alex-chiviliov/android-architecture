@@ -117,7 +117,7 @@ class TasksViewModel(
         }
     }
 
-    fun clearCompletedTasks() {
+    fun clearCompletedTasks() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         tasksRepository.clearCompletedTasks()
         snackbarMessage.value = R.string.completed_tasks_cleared
         loadTasks(false, false)

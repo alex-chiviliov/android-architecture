@@ -143,7 +143,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() = run(DefaultDispatcher) {
         val selection = "$COLUMN_NAME_COMPLETED LIKE ?"
         val selectionArgs = arrayOf("1")
         with(dbHelper.writableDatabase) {

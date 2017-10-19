@@ -16,7 +16,6 @@
 package com.example.android.architecture.blueprints.todoapp.data.source
 
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import java.util.*
 
 /**
  * Concrete implementation to load tasks from the data sources into a cache.
@@ -34,7 +33,7 @@ class TasksRepository(
     /**
      * This variable has public visibility so it can be accessed from tests.
      */
-    var cachedTasks: LinkedHashMap<String, Task> = LinkedHashMap()
+    var cachedTasks = mutableMapOf<String, Task>()
 
     /**
      * Marks the cache as invalid, to force an update the next time data is requested. This variable
@@ -109,13 +108,13 @@ class TasksRepository(
         }
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() {
         tasksRemoteDataSource.clearCompletedTasks()
         tasksLocalDataSource.clearCompletedTasks()
 
         cachedTasks = cachedTasks.filterValues {
             !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        }.toMutableMap()
     }
 
     /**

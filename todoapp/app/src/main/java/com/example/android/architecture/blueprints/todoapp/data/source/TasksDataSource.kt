@@ -42,7 +42,7 @@ interface TasksDataSource {
 
     suspend fun activateTask(taskId: String)
 
-    fun clearCompletedTasks()
+    suspend fun clearCompletedTasks()
 
     fun refreshTasks()
 

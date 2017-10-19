@@ -26,20 +26,19 @@ object TasksRemoteDataSource : TasksDataSource {
 
     private const val SERVICE_LATENCY_IN_MILLIS = 5000L
 
-    private var TASKS_SERVICE_DATA = LinkedHashMap<String, Task>(2)
+    private var TASKS_SERVICE_DATA: MutableMap<String, Task>
 
     init {
-        addTask("Build tower in Pisa", "Ground looks good, no foundation work required.")
-        addTask("Finish bridge in Tacoma", "Found awesome girders at half the cost!")
-    }
+        val initialTasks = listOf<Task>(
+                Task("Build tower in Pisa", "Ground looks good, no foundation work required."),
+                Task("Finish bridge in Tacoma", "Found awesome girders at half the cost!")
+        )
 
-    private fun addTask(title: String, description: String) {
-        val newTask = Task(title, description)
-        TASKS_SERVICE_DATA.put(newTask.id, newTask)
+        TASKS_SERVICE_DATA = initialTasks.associateBy { task -> task.id }.toMutableMap()
     }
 
     /**
-     * Note: [null] is never returned. In a real remote data
+     * Note: null is never returned. In a real remote data
      * source implementation, this would be fired if the server can't be contacted or the server
      * returns an error.
      */
@@ -50,7 +49,7 @@ object TasksRemoteDataSource : TasksDataSource {
     }
 
     /**
-     * Note: [null] is never returned. In a real remote data
+     * Note: null is never returned. In a real remote data
      * source implementation, this would be fired if the server can't be contacted or the server
      * returns an error.
      */
@@ -86,10 +85,10 @@ object TasksRemoteDataSource : TasksDataSource {
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() {
         TASKS_SERVICE_DATA = TASKS_SERVICE_DATA.filterValues {
             !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        }.toMutableMap()
     }
 
     override fun refreshTasks() {
