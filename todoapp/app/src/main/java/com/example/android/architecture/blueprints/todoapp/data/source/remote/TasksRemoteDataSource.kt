@@ -64,14 +64,14 @@ object TasksRemoteDataSource : TasksDataSource {
         TASKS_SERVICE_DATA[task.id] = task
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) {
         val completedTask = Task(task.title, task.description, task.id).apply {
             isCompleted = true
         }
-        TASKS_SERVICE_DATA.put(task.id, completedTask)
+        TASKS_SERVICE_DATA[task.id] = completedTask
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         // Not required for the remote data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }

@@ -123,7 +123,7 @@ class TasksViewModel(
         loadTasks(false, false)
     }
 
-    fun completeTask(task: Task, completed: Boolean) {
+    fun completeTask(task: Task, completed: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         // Update the entity
         task.isCompleted = completed
 

@@ -62,11 +62,11 @@ class TaskDetailViewModel(
         editTaskCommand.call()
     }
 
-    fun setCompleted(completed: Boolean) {
+    fun setCompleted(completed: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         if (isDataLoading) {
-            return
+            return@launch
         }
-        val task = this.task.get().apply {
+        val task = this@TaskDetailViewModel.task.get().apply {
             isCompleted = completed
         }
         if (completed) {

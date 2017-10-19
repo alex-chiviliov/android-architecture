@@ -25,7 +25,7 @@ import com.example.android.architecture.blueprints.todoapp.data.source.local.Tas
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_ENTRY_ID
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_TITLE
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.TABLE_NAME
-import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.DefaultDispatcher
 import kotlinx.coroutines.experimental.run
 import kotlinx.coroutines.experimental.runBlocking
 
@@ -40,7 +40,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
      * Note: [LoadTasksCallback.onDataNotAvailable] is fired if the database doesn't exist
      * or the table is empty.
      */
-    override suspend fun getTasks(): List<Task>? = run(CommonPool) {
+    override suspend fun getTasks(): List<Task>? = run(DefaultDispatcher) {
         dbHelper.readableDatabase.use { db ->
 
             val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
@@ -73,7 +73,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
     /**
      * Note: the null is returned if the [Task] isn't found.
      */
-     override suspend fun getTask(taskId: String): Task? = run(CommonPool) {
+     override suspend fun getTask(taskId: String): Task? = run(DefaultDispatcher) {
         dbHelper.readableDatabase.use { db ->
 
             val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
@@ -99,7 +99,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override suspend fun saveTask(task: Task) = run(CommonPool) {
+    override suspend fun saveTask(task: Task) = run(DefaultDispatcher) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_ENTRY_ID, task.id)
             put(COLUMN_NAME_TITLE, task.title)
@@ -112,7 +112,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) = run(DefaultDispatcher) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_COMPLETED, true)
         }
@@ -122,7 +122,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         // Not required for the local data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }

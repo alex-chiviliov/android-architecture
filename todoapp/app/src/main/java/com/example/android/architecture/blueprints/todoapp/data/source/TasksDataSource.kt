@@ -34,9 +34,9 @@ interface TasksDataSource {
 
     suspend fun saveTask(task: Task)
 
-    fun completeTask(task: Task)
+    suspend fun completeTask(task: Task)
 
-    fun completeTask(taskId: String)
+    suspend fun completeTask(taskId: String)
 
     fun activateTask(task: Task)
 

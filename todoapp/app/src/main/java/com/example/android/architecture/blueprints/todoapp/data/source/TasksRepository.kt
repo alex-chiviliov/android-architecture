@@ -79,7 +79,7 @@ class TasksRepository(
         }
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
         cache(task).let {
             it.isCompleted = true
@@ -88,7 +88,7 @@ class TasksRepository(
         }
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         getTaskWithId(taskId)?.let {
             completeTask(it)
         }
