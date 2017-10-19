@@ -127,7 +127,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun activateTask(task: Task) {
+    override suspend fun activateTask(task: Task) = run(DefaultDispatcher) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_COMPLETED, false)
         }
@@ -138,7 +138,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun activateTask(taskId: String) {
+    override suspend fun activateTask(taskId: String) {
         // Not required for the local data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
