@@ -51,7 +51,7 @@ class TaskDetailViewModel(
     val isDataAvailable
         get() = task.get() != null
 
-    fun deleteTask() {
+    fun deleteTask() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         task.get()?.let {
             tasksRepository.deleteTask(it.id)
             deleteTaskCommand.call()

@@ -156,7 +156,7 @@ class TasksRepository(
         cachedTasks.clear()
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         tasksRemoteDataSource.deleteTask(taskId)
         tasksLocalDataSource.deleteTask(taskId)
         cachedTasks.remove(taskId)

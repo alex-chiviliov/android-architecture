@@ -100,7 +100,7 @@ object TasksRemoteDataSource : TasksDataSource {
         TASKS_SERVICE_DATA.clear()
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         TASKS_SERVICE_DATA.remove(taskId)
     }
 }

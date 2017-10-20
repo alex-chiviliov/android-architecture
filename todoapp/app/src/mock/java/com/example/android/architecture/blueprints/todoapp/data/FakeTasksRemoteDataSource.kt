@@ -63,7 +63,7 @@ object FakeTasksRemoteDataSource : TasksDataSource {
         // tasks from all the available data sources.
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         TASKS_SERVICE_DATA.remove(taskId)
     }
 

@@ -164,7 +164,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) = run(DefaultDispatcher) {
         val selection = "$COLUMN_NAME_ENTRY_ID LIKE ?"
         val selectionArgs = arrayOf(taskId)
         with(dbHelper.writableDatabase) {
