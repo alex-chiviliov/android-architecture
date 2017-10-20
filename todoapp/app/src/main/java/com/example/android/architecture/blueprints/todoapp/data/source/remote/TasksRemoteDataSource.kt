@@ -96,7 +96,7 @@ object TasksRemoteDataSource : TasksDataSource {
         // tasks from all the available data sources.
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() {
         TASKS_SERVICE_DATA.clear()
     }
 

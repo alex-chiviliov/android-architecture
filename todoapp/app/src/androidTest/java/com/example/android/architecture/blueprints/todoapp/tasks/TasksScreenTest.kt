@@ -30,6 +30,7 @@ import android.support.test.runner.AndroidJUnit4
 import android.view.View
 import android.widget.ListView
 import com.example.android.architecture.blueprints.todoapp.*
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.Description
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers.allOf
@@ -59,7 +60,7 @@ import org.junit.runner.RunWith
     @Rule @JvmField var tasksActivityTestRule =
             ActivityTestRule<TasksActivity>(TasksActivity::class.java)
 
-    @Before fun resetState() {
+    @Before fun resetState() = runBlocking<Unit> {
         ViewModelFactory.destroyInstance()
         Injection.provideTasksRepository(InstrumentationRegistry.getTargetContext())
                 .deleteAllTasks()

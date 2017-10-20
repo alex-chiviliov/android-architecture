@@ -150,7 +150,7 @@ class TasksRepository(
         cacheIsDirty = true
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() {
         tasksRemoteDataSource.deleteAllTasks()
         tasksLocalDataSource.deleteAllTasks()
         cachedTasks.clear()

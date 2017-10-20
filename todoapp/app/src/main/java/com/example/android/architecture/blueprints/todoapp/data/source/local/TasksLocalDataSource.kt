@@ -157,7 +157,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // tasks from all the available data sources.
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() = run(DefaultDispatcher) {
         with(dbHelper.writableDatabase) {
             delete(TABLE_NAME, null, null)
             close()

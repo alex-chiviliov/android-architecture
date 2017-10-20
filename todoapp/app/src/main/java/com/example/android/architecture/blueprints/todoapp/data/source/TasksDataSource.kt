@@ -46,7 +46,7 @@ interface TasksDataSource {
 
     fun refreshTasks()
 
-    fun deleteAllTasks()
+    suspend fun deleteAllTasks()
 
     fun deleteTask(taskId: String)
 }
