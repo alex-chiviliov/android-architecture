@@ -122,6 +122,6 @@ dependencies {
     androidTestCompile "com.android.support:appcompat-v7:$rootProject.supportLibraryVersion"
     androidTestCompile "com.android.support:support-compat:$rootProject.supportLibraryVersion"
     androidTestCompile "com.android.support:design:$rootProject.supportLibraryVersion"
-    androidTestCompile 'android.arch.lifecycle:common:1.0.2' // Byzantine versioning system
+    androidTestCompile 'android.arch.lifecycle:runtime:1.0.3' // Byzantine versioning system
 }
 
