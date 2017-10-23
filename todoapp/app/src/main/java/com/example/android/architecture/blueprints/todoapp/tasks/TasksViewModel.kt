@@ -78,7 +78,7 @@ class TasksViewModel(
         loadTasks(false)
     }
 
-    fun loadTasks(forceUpdate: Boolean) {
+    fun loadTasks(forceUpdate: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         loadTasks(forceUpdate, true)
     }
 
@@ -168,7 +168,7 @@ class TasksViewModel(
      * *
      * @param showLoadingUI Pass in true to display a loading icon in the UI
      */
-    private fun loadTasks(forceUpdate: Boolean, showLoadingUI: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
+    private suspend fun loadTasks(forceUpdate: Boolean, showLoadingUI: Boolean) {
         if (showLoadingUI) {
             dataLoading.set(true)
         }

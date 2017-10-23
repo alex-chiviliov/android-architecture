@@ -78,14 +78,12 @@ class TaskDetailViewModel(
         }
     }
 
-    fun start(taskId: String?) {
+    fun start(taskId: String?) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         if (taskId != null) {
-            launch(dispatcher, CoroutineStart.UNDISPATCHED) {
-                isDataLoading = true
-                val task = tasksRepository.getTask(taskId)
-                isDataLoading = false
-                setTask(task)
-            }
+            isDataLoading = true
+            val task = tasksRepository.getTask(taskId)
+            isDataLoading = false
+            setTask(task)
         }
     }
 
