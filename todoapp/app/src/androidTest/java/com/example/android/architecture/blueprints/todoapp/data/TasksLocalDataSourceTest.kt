@@ -46,7 +46,7 @@ import org.junit.runner.RunWith
                 InstrumentationRegistry.getTargetContext())
     }
 
-    @After fun cleanUp() {
+    @After fun cleanUp() = runBlocking<Unit> {
         localDataSource.deleteAllTasks()
     }
 

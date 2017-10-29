@@ -17,46 +17,45 @@ package com.example.android.architecture.blueprints.todoapp.data
 
 import android.support.annotation.VisibleForTesting
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
-import java.util.*
 
 /**
  * Implementation of a remote data source with static access to the data for easy testing.
  */
 object FakeTasksRemoteDataSource : TasksDataSource {
 
-    private var TASKS_SERVICE_DATA: LinkedHashMap<String, Task> = LinkedHashMap()
+    private var TASKS_SERVICE_DATA = mutableMapOf<String, Task>()
 
     override suspend fun getTasks(): List<Task>? = TASKS_SERVICE_DATA.values.toList()
 
     override suspend fun getTask(taskId: String): Task? = TASKS_SERVICE_DATA[taskId]
 
-    override fun saveTask(task: Task) {
-        TASKS_SERVICE_DATA.put(task.id, task)
+    override suspend fun saveTask(task: Task) {
+        TASKS_SERVICE_DATA[task.id] = task
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) {
         val completedTask = Task(task.title, task.description, task.id)
         completedTask.isCompleted = true
         TASKS_SERVICE_DATA.put(task.id, completedTask)
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         // Not required for the remote data source.
     }
 
-    override fun activateTask(task: Task) {
+    override suspend fun activateTask(task: Task) {
         val activeTask = Task(task.title, task.description, task.id)
-        TASKS_SERVICE_DATA.put(task.id, activeTask)
+        TASKS_SERVICE_DATA[task.id] = activeTask
     }
 
-    override fun activateTask(taskId: String) {
+    override suspend fun activateTask(taskId: String) {
         // Not required for the remote data source.
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() {
         TASKS_SERVICE_DATA = TASKS_SERVICE_DATA.filterValues {
             !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        }.toMutableMap()
     }
 
     override fun refreshTasks() {
@@ -64,11 +63,11 @@ object FakeTasksRemoteDataSource : TasksDataSource {
         // tasks from all the available data sources.
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         TASKS_SERVICE_DATA.remove(taskId)
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() {
         TASKS_SERVICE_DATA.clear()
     }
 

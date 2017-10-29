@@ -51,7 +51,7 @@ class TaskDetailViewModel(
     val isDataAvailable
         get() = task.get() != null
 
-    fun deleteTask() {
+    fun deleteTask() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         task.get()?.let {
             tasksRepository.deleteTask(it.id)
             deleteTaskCommand.call()
@@ -62,11 +62,11 @@ class TaskDetailViewModel(
         editTaskCommand.call()
     }
 
-    fun setCompleted(completed: Boolean) {
+    fun setCompleted(completed: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         if (isDataLoading) {
-            return
+            return@launch
         }
-        val task = this.task.get().apply {
+        val task = this@TaskDetailViewModel.task.get().apply {
             isCompleted = completed
         }
         if (completed) {
@@ -78,14 +78,12 @@ class TaskDetailViewModel(
         }
     }
 
-    fun start(taskId: String?) {
+    fun start(taskId: String?) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         if (taskId != null) {
-            launch(dispatcher, CoroutineStart.UNDISPATCHED) {
-                isDataLoading = true
-                val task = tasksRepository.getTask(taskId)
-                isDataLoading = false
-                setTask(task)
-            }
+            isDataLoading = true
+            val task = tasksRepository.getTask(taskId)
+            isDataLoading = false
+            setTask(task)
         }
     }
 

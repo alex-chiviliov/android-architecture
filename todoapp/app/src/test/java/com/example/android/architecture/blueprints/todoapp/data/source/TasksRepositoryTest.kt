@@ -75,7 +75,7 @@ class TasksRepositoryTest {
         verify<TasksDataSource>(tasksLocalDataSource).getTasks()
     }
 
-    @Test fun saveTask_savesTaskToServiceAPI() {
+    @Test fun saveTask_savesTaskToServiceAPI() = runBlocking<Unit> {
         // Given a stub task with title and description
         val newTask = Task(TASK_TITLE, TASK_DESCRIPTION)
 
@@ -88,7 +88,7 @@ class TasksRepositoryTest {
         assertThat(tasksRepository.cachedTasks.size, `is`(1))
     }
 
-    @Test fun completeTask_completesTaskToServiceAPIUpdatesCache() {
+    @Test fun completeTask_completesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given a stub active task with title and description added in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION)
@@ -108,7 +108,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun completeTaskId_completesTaskToServiceAPIUpdatesCache() {
+    @Test fun completeTaskId_completesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given a stub active task with title and description added in the repository
             Task(TASK_TITLE, TASK_DESCRIPTION).also {
@@ -128,7 +128,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun activateTask_activatesTaskToServiceAPIUpdatesCache() {
+    @Test fun activateTask_activatesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         // Given a stub completed task with title and description in the repository
         val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
         with(tasksRepository) {
@@ -145,7 +145,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun activateTaskId_activatesTaskToServiceAPIUpdatesCache() {
+    @Test fun activateTaskId_activatesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         // Given a stub completed task with title and description in the repository
         val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
         with(tasksRepository) {
@@ -172,7 +172,7 @@ class TasksRepositoryTest {
         verify(tasksLocalDataSource).getTask(eq(TASK_TITLE))
     }
 
-    @Test fun deleteCompletedTasks_deleteCompletedTasksToServiceAPIUpdatesCache() {
+    @Test fun deleteCompletedTasks_deleteCompletedTasksToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given 2 stub completed tasks and 1 stub active tasks in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
@@ -198,7 +198,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun deleteAllTasks_deleteTasksToServiceAPIUpdatesCache() {
+    @Test fun deleteAllTasks_deleteTasksToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given 2 stub completed tasks and 1 stub active tasks in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
@@ -219,7 +219,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun deleteTask_deleteTaskToServiceAPIRemovedFromCache() {
+    @Test fun deleteTask_deleteTaskToServiceAPIRemovedFromCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given a task in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted }

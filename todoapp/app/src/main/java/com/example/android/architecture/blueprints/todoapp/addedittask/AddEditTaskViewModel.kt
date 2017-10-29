@@ -55,41 +55,39 @@ class AddEditTaskViewModel(
     private var isDataLoaded = false
     private var taskCompleted = false
 
-    fun start(taskId: String?) {
+    fun start(taskId: String?) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         if (dataLoading.get()) {
             // Already loading, ignore.
-            return
+            return@launch
         }
-        this.taskId = taskId
+        this@AddEditTaskViewModel.taskId = taskId
         if (isNewTask || isDataLoaded) {
             // No need to populate, it's a new task or it already has data
-            return
+            return@launch
         }
 
         if (taskId != null) {
-            launch(dispatcher, CoroutineStart.UNDISPATCHED) {
-                dataLoading.set(true)
-                val task = tasksRepository.getTask(taskId)
-                dataLoading.set(false)
-                if (task != null) {
-                    title.set(task.title)
-                    description.set(task.description)
-                    taskCompleted = task.isCompleted
-                    isDataLoaded = true
+            dataLoading.set(true)
+            val task = tasksRepository.getTask(taskId)
+            dataLoading.set(false)
+            if (task != null) {
+                title.set(task.title)
+                description.set(task.description)
+                taskCompleted = task.isCompleted
+                isDataLoaded = true
 
-                    // Note that there's no need to notify that the values changed because we're using
-                    // ObservableFields.
-                }
+                // Note that there's no need to notify that the values changed because we're using
+                // ObservableFields.
             }
         }
     }
 
     // Called when clicking on fab.
-    fun saveTask() {
+    fun saveTask() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         val task = Task(title.get(), description.get())
         if (task.isEmpty) {
             showSnackbarMessage(R.string.empty_task_message)
-            return
+            return@launch
         }
         if (isNewTask) {
             createTask(task)
@@ -102,12 +100,12 @@ class AddEditTaskViewModel(
     }
 
 
-    private fun createTask(newTask: Task) {
+    private suspend fun createTask(newTask: Task) {
         tasksRepository.saveTask(newTask)
         taskUpdatedEvent.call()
     }
 
-    private fun updateTask(task: Task) {
+    private suspend fun updateTask(task: Task) {
         if (isNewTask) {
             throw RuntimeException("updateTask() was called but task is new.")
         }

@@ -18,14 +18,10 @@ package com.example.android.architecture.blueprints.todoapp.taskdetail
 import android.app.Activity
 import android.content.Intent
 import android.support.test.InstrumentationRegistry
-import android.support.test.espresso.Espresso
 import android.support.test.espresso.Espresso.onView
 import android.support.test.espresso.IdlingRegistry
 import android.support.test.espresso.assertion.ViewAssertions.matches
-import android.support.test.espresso.matcher.ViewMatchers.isChecked
-import android.support.test.espresso.matcher.ViewMatchers.isDisplayed
-import android.support.test.espresso.matcher.ViewMatchers.withId
-import android.support.test.espresso.matcher.ViewMatchers.withText
+import android.support.test.espresso.matcher.ViewMatchers.*
 import android.support.test.filters.LargeTest
 import android.support.test.rule.ActivityTestRule
 import android.support.test.runner.AndroidJUnit4
@@ -36,6 +32,7 @@ import com.example.android.architecture.blueprints.todoapp.data.FakeTasksRemoteD
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.rotateOrientation
 import com.example.android.architecture.blueprints.todoapp.util.EspressoIdlingResource
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.core.IsNot.not
 import org.junit.After
 import org.junit.Before
@@ -66,11 +63,11 @@ import org.junit.runner.RunWith
     @get:Rule var taskDetailActivityTestRule = ActivityTestRule(TaskDetailActivity::class.java,
             /* Initial touch mode  */ true, /* Lazily launch activity */ false)
 
-    private fun loadActiveTask() {
+    private suspend fun loadActiveTask() {
         startActivityWithWithStubbedTask(ACTIVE_TASK)
     }
 
-    private fun loadCompletedTask() {
+    private suspend fun loadCompletedTask() {
         startActivityWithWithStubbedTask(COMPLETED_TASK)
     }
 
@@ -84,7 +81,7 @@ import org.junit.runner.RunWith
      * the service API. This is a great way to make your tests more reliable and faster at the same
      * time, since they are isolated from any outside dependencies.
      */
-    private fun startActivityWithWithStubbedTask(task: Task) {
+    private suspend fun startActivityWithWithStubbedTask(task: Task) {
         // Add a task stub to the fake service api layer.
         Injection.provideTasksRepository(InstrumentationRegistry.getTargetContext()).apply {
             deleteAllTasks()
@@ -108,7 +105,7 @@ import org.junit.runner.RunWith
         IdlingRegistry.getInstance().register(EspressoIdlingResource.countingIdlingResource)
     }
 
-    @Test fun activeTaskDetails_DisplayedInUi() {
+    @Test fun activeTaskDetails_DisplayedInUi() = runBlocking<Unit> {
         loadActiveTask()
 
         // Check that the task title and description are displayed
@@ -117,7 +114,7 @@ import org.junit.runner.RunWith
         onView(withId(R.id.task_detail_complete)).check(matches(not<View>(isChecked())))
     }
 
-    @Test fun completedTaskDetails_DisplayedInUi() {
+    @Test fun completedTaskDetails_DisplayedInUi() = runBlocking<Unit> {
         loadCompletedTask()
 
         // Check that the task title and description are displayed
@@ -126,7 +123,7 @@ import org.junit.runner.RunWith
         onView(withId(R.id.task_detail_complete)).check(matches(isChecked()))
     }
 
-    @Test fun orientationChange_menuAndTaskPersist() {
+    @Test fun orientationChange_menuAndTaskPersist() = runBlocking<Unit> {
         loadActiveTask()
 
         // Check delete menu item is displayed and is unique

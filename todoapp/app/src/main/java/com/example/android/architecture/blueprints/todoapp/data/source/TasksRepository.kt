@@ -16,7 +16,6 @@
 package com.example.android.architecture.blueprints.todoapp.data.source
 
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import java.util.*
 
 /**
  * Concrete implementation to load tasks from the data sources into a cache.
@@ -34,7 +33,7 @@ class TasksRepository(
     /**
      * This variable has public visibility so it can be accessed from tests.
      */
-    var cachedTasks: LinkedHashMap<String, Task> = LinkedHashMap()
+    var cachedTasks = mutableMapOf<String, Task>()
 
     /**
      * Marks the cache as invalid, to force an update the next time data is requested. This variable
@@ -71,7 +70,7 @@ class TasksRepository(
         }
     }
 
-    override fun saveTask(task: Task) {
+    override suspend fun saveTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
         cache(task).let {
             tasksRemoteDataSource.saveTask(it)
@@ -79,7 +78,7 @@ class TasksRepository(
         }
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
         cache(task).let {
             it.isCompleted = true
@@ -88,13 +87,13 @@ class TasksRepository(
         }
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         getTaskWithId(taskId)?.let {
             completeTask(it)
         }
     }
 
-    override fun activateTask(task: Task) {
+    override suspend fun activateTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
         cache(task).let {
             it.isCompleted = false
@@ -103,19 +102,19 @@ class TasksRepository(
         }
     }
 
-    override fun activateTask(taskId: String) {
+    override suspend fun activateTask(taskId: String) {
         getTaskWithId(taskId)?.let {
             activateTask(it)
         }
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() {
         tasksRemoteDataSource.clearCompletedTasks()
         tasksLocalDataSource.clearCompletedTasks()
 
         cachedTasks = cachedTasks.filterValues {
             !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        }.toMutableMap()
     }
 
     /**
@@ -151,13 +150,13 @@ class TasksRepository(
         cacheIsDirty = true
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() {
         tasksRemoteDataSource.deleteAllTasks()
         tasksLocalDataSource.deleteAllTasks()
         cachedTasks.clear()
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         tasksRemoteDataSource.deleteTask(taskId)
         tasksLocalDataSource.deleteTask(taskId)
         cachedTasks.remove(taskId)
@@ -182,7 +181,7 @@ class TasksRepository(
         cacheIsDirty = false
     }
 
-    private fun refreshLocalDataSource(tasks: List<Task>) {
+    private suspend fun refreshLocalDataSource(tasks: List<Task>) {
         tasksLocalDataSource.deleteAllTasks()
         for (task in tasks) {
             tasksLocalDataSource.saveTask(task)

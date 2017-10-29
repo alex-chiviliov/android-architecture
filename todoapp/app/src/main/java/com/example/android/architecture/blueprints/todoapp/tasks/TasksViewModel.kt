@@ -78,7 +78,7 @@ class TasksViewModel(
         loadTasks(false)
     }
 
-    fun loadTasks(forceUpdate: Boolean) {
+    fun loadTasks(forceUpdate: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         loadTasks(forceUpdate, true)
     }
 
@@ -117,13 +117,13 @@ class TasksViewModel(
         }
     }
 
-    fun clearCompletedTasks() {
+    fun clearCompletedTasks() = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         tasksRepository.clearCompletedTasks()
         snackbarMessage.value = R.string.completed_tasks_cleared
         loadTasks(false, false)
     }
 
-    fun completeTask(task: Task, completed: Boolean) {
+    fun completeTask(task: Task, completed: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
         // Update the entity
         task.isCompleted = completed
 
@@ -168,7 +168,7 @@ class TasksViewModel(
      * *
      * @param showLoadingUI Pass in true to display a loading icon in the UI
      */
-    private fun loadTasks(forceUpdate: Boolean, showLoadingUI: Boolean) = launch(dispatcher, CoroutineStart.UNDISPATCHED) {
+    private suspend fun loadTasks(forceUpdate: Boolean, showLoadingUI: Boolean) {
         if (showLoadingUI) {
             dataLoading.set(true)
         }
