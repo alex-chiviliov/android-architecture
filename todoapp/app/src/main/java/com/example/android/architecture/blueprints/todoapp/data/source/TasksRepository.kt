@@ -16,8 +16,6 @@
 package com.example.android.architecture.blueprints.todoapp.data.source
 
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import java.util.ArrayList
-import java.util.LinkedHashMap
 
 /**
  * Concrete implementation to load tasks from the data sources into a cache.
@@ -35,7 +33,7 @@ class TasksRepository(
     /**
      * This variable has public visibility so it can be accessed from tests.
      */
-    var cachedTasks: LinkedHashMap<String, Task> = LinkedHashMap()
+    var cachedTasks = mutableMapOf<String, Task>()
 
     /**
      * Marks the cache as invalid, to force an update the next time data is requested. This variable
@@ -48,79 +46,75 @@ class TasksRepository(
      * available first.
      *
      *
-     * Note: [LoadTasksCallback.onDataNotAvailable] is fired if all data sources fail to
+     * Note: a  null [List] is returned if all data sources fail to
      * get the data.
      */
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
+    override suspend fun getTasks(): List<Task>? {
         // Respond immediately with cache if available and not dirty
         if (cachedTasks.isNotEmpty() && !cacheIsDirty) {
-            callback.onTasksLoaded(ArrayList(cachedTasks.values))
-            return
+            return cachedTasks.values.toList()
         }
 
         if (cacheIsDirty) {
             // If the cache is dirty we need to fetch new data from the network.
-            getTasksFromRemoteDataSource(callback)
+            return getTasksFromRemoteDataSource()
         } else {
             // Query the local storage if available. If not, query the network.
-            tasksLocalDataSource.getTasks(object : TasksDataSource.LoadTasksCallback {
-                override fun onTasksLoaded(tasks: List<Task>) {
-                    refreshCache(tasks)
-                    callback.onTasksLoaded(ArrayList(cachedTasks.values))
-                }
-
-                override fun onDataNotAvailable() {
-                    getTasksFromRemoteDataSource(callback)
-                }
-            })
+            val tasks = tasksLocalDataSource.getTasks()
+            if (tasks != null) {
+                refreshCache(tasks)
+                return cachedTasks.values.toList()
+            } else {
+                return getTasksFromRemoteDataSource()
+            }
         }
     }
 
-    override fun saveTask(task: Task) {
+    override suspend fun saveTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
-        cacheAndPerform(task) {
+        cache(task).let {
             tasksRemoteDataSource.saveTask(it)
             tasksLocalDataSource.saveTask(it)
         }
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
-        cacheAndPerform(task) {
+        cache(task).let {
             it.isCompleted = true
             tasksRemoteDataSource.completeTask(it)
             tasksLocalDataSource.completeTask(it)
         }
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         getTaskWithId(taskId)?.let {
             completeTask(it)
         }
     }
 
-    override fun activateTask(task: Task) {
+    override suspend fun activateTask(task: Task) {
         // Do in memory cache update to keep the app UI up to date
-        cacheAndPerform(task) {
+        cache(task).let {
             it.isCompleted = false
             tasksRemoteDataSource.activateTask(it)
             tasksLocalDataSource.activateTask(it)
         }
     }
 
-    override fun activateTask(taskId: String) {
+    override suspend fun activateTask(taskId: String) {
         getTaskWithId(taskId)?.let {
             activateTask(it)
         }
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() {
         tasksRemoteDataSource.clearCompletedTasks()
         tasksLocalDataSource.clearCompletedTasks()
 
         cachedTasks = cachedTasks.filterValues {
             !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        }.toMutableMap()
     }
 
     /**
@@ -128,85 +122,66 @@ class TasksRepository(
      * uses the network data source. This is done to simplify the sample.
      *
      *
-     * Note: [GetTaskCallback.onDataNotAvailable] is fired if both data sources fail to
+     * Note: the null is returned if both data sources fail to
      * get the data.
      */
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
+    override suspend fun getTask(taskId: String): Task? {
         val taskInCache = getTaskWithId(taskId)
 
         // Respond immediately with cache if available
         if (taskInCache != null) {
-            callback.onTaskLoaded(taskInCache)
-            return
+            return taskInCache
         }
 
         // Load from server/persisted if needed.
 
         // Is the task in the local data source? If not, query the network.
-        tasksLocalDataSource.getTask(taskId, object : TasksDataSource.GetTaskCallback {
-            override fun onTaskLoaded(task: Task) {
-                // Do in memory cache update to keep the app UI up to date
-                cacheAndPerform(task) {
-                    callback.onTaskLoaded(it)
-                }
-            }
+        val taskLocal = tasksLocalDataSource.getTask(taskId)
+        if (taskLocal != null) {
+            // Do in memory cache update to keep the app UI up to date
+            return cache(taskLocal)
+        }
 
-            override fun onDataNotAvailable() {
-                tasksRemoteDataSource.getTask(taskId, object : TasksDataSource.GetTaskCallback {
-                    override fun onTaskLoaded(task: Task) {
-                        // Do in memory cache update to keep the app UI up to date
-                        cacheAndPerform(task) {
-                            callback.onTaskLoaded(it)
-                        }
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        val taskRemote = tasksRemoteDataSource.getTask(taskId)
+        return if (taskRemote != null) cache(taskRemote) else null
     }
 
     override fun refreshTasks() {
         cacheIsDirty = true
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() {
         tasksRemoteDataSource.deleteAllTasks()
         tasksLocalDataSource.deleteAllTasks()
         cachedTasks.clear()
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         tasksRemoteDataSource.deleteTask(taskId)
         tasksLocalDataSource.deleteTask(taskId)
         cachedTasks.remove(taskId)
     }
 
-    private fun getTasksFromRemoteDataSource(callback: TasksDataSource.LoadTasksCallback) {
-        tasksRemoteDataSource.getTasks(object : TasksDataSource.LoadTasksCallback {
-            override fun onTasksLoaded(tasks: List<Task>) {
-                refreshCache(tasks)
-                refreshLocalDataSource(tasks)
-                callback.onTasksLoaded(ArrayList(cachedTasks.values))
-            }
-
-            override fun onDataNotAvailable() {
-                callback.onDataNotAvailable()
-            }
-        })
+    private suspend fun getTasksFromRemoteDataSource(): List<Task>? {
+        val tasks = tasksRemoteDataSource.getTasks()
+        if (tasks != null) {
+            refreshCache(tasks)
+            refreshLocalDataSource(tasks)
+            return cachedTasks.values.toList()
+        } else {
+            return null
+        }
     }
 
     private fun refreshCache(tasks: List<Task>) {
         cachedTasks.clear()
         tasks.forEach {
-            cacheAndPerform(it) {}
+            cache(it)
         }
         cacheIsDirty = false
     }
 
-    private fun refreshLocalDataSource(tasks: List<Task>) {
+    private suspend fun refreshLocalDataSource(tasks: List<Task>) {
         tasksLocalDataSource.deleteAllTasks()
         for (task in tasks) {
             tasksLocalDataSource.saveTask(task)
@@ -215,12 +190,12 @@ class TasksRepository(
 
     private fun getTaskWithId(id: String) = cachedTasks[id]
 
-    private inline fun cacheAndPerform(task: Task, perform: (Task) -> Unit) {
+    private fun cache(task: Task): Task {
         val cachedTask = Task(task.title, task.description, task.id).apply {
             isCompleted = task.isCompleted
         }
         cachedTasks.put(cachedTask.id, cachedTask)
-        perform(cachedTask)
+        return cachedTask
     }
 
     companion object {

@@ -17,6 +17,7 @@ package com.example.android.architecture.blueprints.todoapp.data.source.local
 
 import android.content.ContentValues
 import android.content.Context
+import android.support.annotation.VisibleForTesting
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_COMPLETED
@@ -24,6 +25,9 @@ import com.example.android.architecture.blueprints.todoapp.data.source.local.Tas
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_ENTRY_ID
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_TITLE
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.TABLE_NAME
+import kotlinx.coroutines.experimental.DefaultDispatcher
+import kotlinx.coroutines.experimental.run
+import kotlinx.coroutines.experimental.runBlocking
 
 /**
  * Concrete implementation of a data source as a db.
@@ -36,69 +40,66 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
      * Note: [LoadTasksCallback.onDataNotAvailable] is fired if the database doesn't exist
      * or the table is empty.
      */
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
-        val tasks = ArrayList<Task>()
-        val db = dbHelper.readableDatabase
+    override suspend fun getTasks(): List<Task>? = run(DefaultDispatcher) {
+        dbHelper.readableDatabase.use { db ->
 
-        val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
-                COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
+            val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
+                    COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
 
-        val cursor = db.query(
-                TABLE_NAME, projection, null, null, null, null, null)
+            db.query(TABLE_NAME, projection, null, null, null, null, null).use { cursor ->
 
-        with(cursor) {
-            while (moveToNext()) {
-                val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
-                val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
-                val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
-                val task = Task(title, description, itemId).apply {
-                    isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                with(cursor) {
+                    val tasks = mutableListOf<Task>()
+                    while (moveToNext()) {
+                        val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
+                        val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
+                        val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
+                        val task = Task(title, description, itemId).apply {
+                            isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                        }
+                        tasks.add(task)
+                    }
+                    if (tasks.isNotEmpty()) {
+                        tasks
+                    } else {
+                        // This will be returned if the table is new or just empty.
+                        null
+                    }
                 }
-                tasks.add(task)
             }
-            if (tasks.isNotEmpty()) {
-                callback.onTasksLoaded(tasks)
-            } else {
-                // This will be called if the table is new or just empty.
-                callback.onDataNotAvailable()
-            }
-            close()
         }
-        db.close()
     }
 
     /**
-     * Note: [GetTaskCallback.onDataNotAvailable] is fired if the [Task] isn't
-     * found.
+     * Note: the null is returned if the [Task] isn't found.
      */
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
-        val db = dbHelper.readableDatabase
+     override suspend fun getTask(taskId: String): Task? = run(DefaultDispatcher) {
+        dbHelper.readableDatabase.use { db ->
 
-        val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
-                COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
+            val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
+                    COLUMN_NAME_DESCRIPTION, COLUMN_NAME_COMPLETED)
 
-        val cursor = db.query(
-                TABLE_NAME, projection, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(taskId), null,
-                null, null)
+            db.query(TABLE_NAME, projection, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(taskId), null,
+                    null, null).use { cursor ->
 
-        with(cursor) {
-            if (moveToFirst()) {
-                val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
-                val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
-                val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
-                val task = Task(title, description, itemId).apply {
-                    isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                with(cursor) {
+                    if (moveToFirst()) {
+                        val itemId = getString(getColumnIndexOrThrow(COLUMN_NAME_ENTRY_ID))
+                        val title = getString(getColumnIndexOrThrow(COLUMN_NAME_TITLE))
+                        val description = getString(getColumnIndexOrThrow(COLUMN_NAME_DESCRIPTION))
+                        val task = Task(title, description, itemId).apply {
+                            isCompleted = getInt(getColumnIndexOrThrow(COLUMN_NAME_COMPLETED)) == 1
+                        }
+                        task
+                    } else {
+                        null
+                    }
                 }
-                callback.onTaskLoaded(task)
-            } else {
-                callback.onDataNotAvailable()
             }
-            close()
         }
-        db.close()
     }
 
-    override fun saveTask(task: Task) {
+    override suspend fun saveTask(task: Task) = run(DefaultDispatcher) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_ENTRY_ID, task.id)
             put(COLUMN_NAME_TITLE, task.title)
@@ -111,7 +112,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun completeTask(task: Task) = run(DefaultDispatcher) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_COMPLETED, true)
         }
@@ -121,12 +122,12 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         // Not required for the local data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun activateTask(task: Task) {
+    override suspend fun activateTask(task: Task) = run(DefaultDispatcher) {
         val values = ContentValues().apply {
             put(COLUMN_NAME_COMPLETED, false)
         }
@@ -137,12 +138,12 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override fun activateTask(taskId: String) {
+    override suspend fun activateTask(taskId: String) {
         // Not required for the local data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() = run(DefaultDispatcher) {
         val selection = "$COLUMN_NAME_COMPLETED LIKE ?"
         val selectionArgs = arrayOf("1")
         with(dbHelper.writableDatabase) {
@@ -156,14 +157,14 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // tasks from all the available data sources.
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() = run(DefaultDispatcher) {
         with(dbHelper.writableDatabase) {
             delete(TABLE_NAME, null, null)
             close()
         }
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) = run(DefaultDispatcher) {
         val selection = "$COLUMN_NAME_ENTRY_ID LIKE ?"
         val selectionArgs = arrayOf(taskId)
         with(dbHelper.writableDatabase) {
@@ -179,4 +180,11 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
             return INSTANCE ?: TasksLocalDataSource(context).apply { INSTANCE = this }
         }
     }
+
+    /**
+     * A dummy method to avoid occasional "method runBlocking" not found errors
+     * when running Android Instrumentation tests.
+     */
+    @VisibleForTesting
+    fun dummy() = runBlocking {  }
 }

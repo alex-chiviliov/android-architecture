@@ -15,10 +15,9 @@
  */
 package com.example.android.architecture.blueprints.todoapp.data.source.remote
 
-import android.os.Handler
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
-import com.google.common.collect.Lists
+import kotlinx.coroutines.experimental.delay
 
 /**
  * Implementation of the data source that adds a latency simulating network.
@@ -27,79 +26,69 @@ object TasksRemoteDataSource : TasksDataSource {
 
     private const val SERVICE_LATENCY_IN_MILLIS = 5000L
 
-    private var TASKS_SERVICE_DATA = LinkedHashMap<String, Task>(2)
+    private var TASKS_SERVICE_DATA: MutableMap<String, Task>
 
     init {
-        addTask("Build tower in Pisa", "Ground looks good, no foundation work required.")
-        addTask("Finish bridge in Tacoma", "Found awesome girders at half the cost!")
-    }
+        val initialTasks = listOf<Task>(
+                Task("Build tower in Pisa", "Ground looks good, no foundation work required."),
+                Task("Finish bridge in Tacoma", "Found awesome girders at half the cost!")
+        )
 
-    private fun addTask(title: String, description: String) {
-        val newTask = Task(title, description)
-        TASKS_SERVICE_DATA.put(newTask.id, newTask)
-    }
-
-    /**
-     * Note: [LoadTasksCallback.onDataNotAvailable] is never fired. In a real remote data
-     * source implementation, this would be fired if the server can't be contacted or the server
-     * returns an error.
-     */
-    override fun getTasks(callback: TasksDataSource.LoadTasksCallback) {
-        // Simulate network by delaying the execution.
-        val tasks = Lists.newArrayList(TASKS_SERVICE_DATA.values)
-        Handler().postDelayed({
-            callback.onTasksLoaded(tasks)
-        }, SERVICE_LATENCY_IN_MILLIS)
+        TASKS_SERVICE_DATA = initialTasks.associateBy { task -> task.id }.toMutableMap()
     }
 
     /**
-     * Note: [GetTaskCallback.onDataNotAvailable] is never fired. In a real remote data
+     * Note: null is never returned. In a real remote data
      * source implementation, this would be fired if the server can't be contacted or the server
      * returns an error.
      */
-    override fun getTask(taskId: String, callback: TasksDataSource.GetTaskCallback) {
-        val task = TASKS_SERVICE_DATA[taskId]
-
+    override suspend fun getTasks(): List<Task>? {
         // Simulate network by delaying the execution.
-        with(Handler()) {
-            if (task != null) {
-                postDelayed({ callback.onTaskLoaded(task) }, SERVICE_LATENCY_IN_MILLIS)
-            } else {
-                postDelayed({ callback.onDataNotAvailable() }, SERVICE_LATENCY_IN_MILLIS)
-            }
-        }
+        delay(SERVICE_LATENCY_IN_MILLIS)
+        return TASKS_SERVICE_DATA.values.toList()
     }
 
-    override fun saveTask(task: Task) {
-        TASKS_SERVICE_DATA.put(task.id, task)
+    /**
+     * Note: null is never returned. In a real remote data
+     * source implementation, this would be fired if the server can't be contacted or the server
+     * returns an error.
+     */
+    override suspend fun getTask(taskId: String): Task? {
+        // Simulate network by delaying the execution.
+        delay(SERVICE_LATENCY_IN_MILLIS)
+        return TASKS_SERVICE_DATA[taskId]
     }
 
-    override fun completeTask(task: Task) {
+    override suspend fun saveTask(task: Task) {
+        TASKS_SERVICE_DATA[task.id] = task
+    }
+
+    override suspend fun completeTask(task: Task) {
         val completedTask = Task(task.title, task.description, task.id).apply {
             isCompleted = true
         }
-        TASKS_SERVICE_DATA.put(task.id, completedTask)
+        TASKS_SERVICE_DATA[task.id] = completedTask
     }
 
-    override fun completeTask(taskId: String) {
+    override suspend fun completeTask(taskId: String) {
         // Not required for the remote data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun activateTask(task: Task) {
+    override suspend fun activateTask(task: Task) {
         val activeTask = Task(task.title, task.description, task.id)
-        TASKS_SERVICE_DATA.put(task.id, activeTask)
+        TASKS_SERVICE_DATA[task.id] = activeTask
     }
 
-    override fun activateTask(taskId: String) {
+    override suspend fun activateTask(taskId: String) {
         // Not required for the remote data source because the {@link TasksRepository} handles
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override fun clearCompletedTasks() {
+    override suspend fun clearCompletedTasks() {
         TASKS_SERVICE_DATA = TASKS_SERVICE_DATA.filterValues {
             !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        }.toMutableMap()
     }
 
     override fun refreshTasks() {
@@ -107,11 +96,11 @@ object TasksRemoteDataSource : TasksDataSource {
         // tasks from all the available data sources.
     }
 
-    override fun deleteAllTasks() {
+    override suspend fun deleteAllTasks() {
         TASKS_SERVICE_DATA.clear()
     }
 
-    override fun deleteTask(taskId: String) {
+    override suspend fun deleteTask(taskId: String) {
         TASKS_SERVICE_DATA.remove(taskId)
     }
 }

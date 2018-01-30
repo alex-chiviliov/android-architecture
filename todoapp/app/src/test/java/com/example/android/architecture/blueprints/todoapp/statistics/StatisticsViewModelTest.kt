@@ -19,21 +19,18 @@ package com.example.android.architecture.blueprints.todoapp.statistics
 import android.app.Application
 import android.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
-import com.example.android.architecture.blueprints.todoapp.util.capture
-import com.google.common.collect.Lists
+import kotlinx.coroutines.experimental.Unconfined
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.Is.`is`
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.ArgumentCaptor
-import org.mockito.Captor
 import org.mockito.Mock
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
 /**
@@ -44,8 +41,6 @@ class StatisticsViewModelTest {
     // Executes each task synchronously using Architecture Components.
     @get:Rule var instantExecutorRule = InstantTaskExecutorRule()
     @Mock private lateinit var tasksRepository: TasksRepository
-    @Captor private lateinit var loadTasksCallbackCaptor:
-            ArgumentCaptor<TasksDataSource.LoadTasksCallback>
     private lateinit var statisticsViewModel: StatisticsViewModel
     private lateinit var tasks: MutableList<Task>
 
@@ -55,7 +50,7 @@ class StatisticsViewModelTest {
         MockitoAnnotations.initMocks(this)
 
         // Get a reference to the class under test
-        statisticsViewModel = StatisticsViewModel(mock(Application::class.java), tasksRepository)
+        statisticsViewModel = StatisticsViewModel(mock(Application::class.java), tasksRepository, Unconfined)
 
         // We initialise the tasks to 3, with one active and two completed
         val task1 = Task("Title1", "Description1")
@@ -65,44 +60,35 @@ class StatisticsViewModelTest {
         val task3 = Task("Title3", "Description3").apply {
             isCompleted = true
         }
-        tasks = Lists.newArrayList(task1, task2, task3)
+        tasks = mutableListOf(task1, task2, task3)
     }
 
-    @Test fun loadEmptyTasksFromRepository_EmptyResults() {
+    @Test fun loadEmptyTasksFromRepository_EmptyResults() = runBlocking<Unit> {
         // Given an initialized StatisticsViewModel with no tasks
-        tasks.clear()
+        `when`(tasksRepository.getTasks()).thenReturn(emptyList())
 
         // When loading of Tasks is requested
         statisticsViewModel.loadStatistics()
-
-        // Callback is captured and invoked with stubbed tasks
-        verify<TasksRepository>(tasksRepository).getTasks(capture(loadTasksCallbackCaptor))
-        loadTasksCallbackCaptor.value.onTasksLoaded(tasks)
 
         // Then the results are empty
         assertThat(statisticsViewModel.empty.get(), `is`(true))
     }
 
-    @Test fun loadNonEmptyTasksFromRepository_NonEmptyResults() {
+    @Test fun loadNonEmptyTasksFromRepository_NonEmptyResults() = runBlocking<Unit> {
         // When loading of Tasks is requested
+        `when`(tasksRepository.getTasks()).thenReturn(tasks)
         statisticsViewModel.loadStatistics()
 
-        // Callback is captured and invoked with stubbed tasks
-        verify<TasksRepository>(tasksRepository).getTasks(capture(loadTasksCallbackCaptor))
-        loadTasksCallbackCaptor.value.onTasksLoaded(tasks)
-
-        // Then the results are empty
+        // Then the results are not empty
         assertThat(statisticsViewModel.empty.get(), `is`(false))
     }
 
 
-    @Test fun loadStatisticsWhenTasksAreUnavailable_CallErrorToDisplay() {
+    @Test fun loadStatisticsWhenTasksAreUnavailable_CallErrorToDisplay() = runBlocking<Unit> {
         // When statistics are loaded
-        statisticsViewModel.loadStatistics()
-
         // And tasks data isn't available
-        verify<TasksRepository>(tasksRepository).getTasks(capture(loadTasksCallbackCaptor))
-        loadTasksCallbackCaptor.value.onDataNotAvailable()
+        `when`(tasksRepository.getTasks()).thenReturn(null)
+        statisticsViewModel.loadStatistics()
 
         // Then an error message is shown
         assertEquals(statisticsViewModel.empty.get(), true)

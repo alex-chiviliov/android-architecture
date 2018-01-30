@@ -19,20 +19,19 @@ package com.example.android.architecture.blueprints.todoapp.addedittask
 import android.app.Application
 import android.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.android.architecture.blueprints.todoapp.data.Task
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository
 import com.example.android.architecture.blueprints.todoapp.util.any
-import com.example.android.architecture.blueprints.todoapp.util.capture
 import com.example.android.architecture.blueprints.todoapp.util.eq
 import com.example.android.architecture.blueprints.todoapp.util.mock
+import kotlinx.coroutines.experimental.Unconfined
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.Matchers.`is`
 import org.junit.Assert.assertThat
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.ArgumentCaptor
-import org.mockito.Captor
 import org.mockito.Mock
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
@@ -44,12 +43,6 @@ class AddEditTaskViewModelTest {
     // Executes each task synchronously using Architecture Components.
     @get:Rule var instantExecutorRule = InstantTaskExecutorRule()
     @Mock private lateinit var tasksRepository: TasksRepository
-    /**
-     * [ArgumentCaptor] is a powerful Mockito API to capture argument values and use them to
-     * perform further actions or assertions on them.
-     */
-    @Captor private lateinit var getTaskCallbackCaptor:
-            ArgumentCaptor<TasksDataSource.GetTaskCallback>
     private lateinit var addEditTaskViewModel: AddEditTaskViewModel
 
     @Before fun setupAddEditTaskViewModel() {
@@ -58,10 +51,10 @@ class AddEditTaskViewModelTest {
         MockitoAnnotations.initMocks(this)
 
         // Get a reference to the class under test
-        addEditTaskViewModel = AddEditTaskViewModel(mock<Application>(), tasksRepository)
+        addEditTaskViewModel = AddEditTaskViewModel(mock<Application>(), tasksRepository, Unconfined)
     }
 
-    @Test fun saveNewTaskToRepository_showsSuccessMessageUi() {
+    @Test fun saveNewTaskToRepository_showsSuccessMessageUi() = runBlocking<Unit> {
         // When the ViewModel is asked to save a task
         with(addEditTaskViewModel) {
             description.set("Some Task Description")
@@ -73,21 +66,18 @@ class AddEditTaskViewModelTest {
         verify<TasksRepository>(tasksRepository).saveTask(any<Task>())
     }
 
-    @Test fun populateTask_callsRepoAndUpdatesView() {
+    @Test fun populateTask_callsRepoAndUpdatesView() = runBlocking<Unit> {
         val testTask = Task("TITLE", "DESCRIPTION", "1")
+        `when`(tasksRepository.getTask(eq(testTask.id))).thenReturn(testTask)
 
         // Get a reference to the class under test
-        addEditTaskViewModel = AddEditTaskViewModel(mock<Application>(), tasksRepository).apply {
+        addEditTaskViewModel = AddEditTaskViewModel(mock<Application>(), tasksRepository, Unconfined).apply {
             // When the ViewModel is asked to populate an existing task
             start(testTask.id)
         }
 
         // Then the task repository is queried and the view updated
-        verify(tasksRepository).getTask(eq(testTask.id),
-                capture(getTaskCallbackCaptor))
-
-        // Simulate callback
-        getTaskCallbackCaptor.value.onTaskLoaded(testTask)
+        verify(tasksRepository).getTask(eq(testTask.id))
 
         // Verify the fields were updated
         assertThat(addEditTaskViewModel.title.get(), `is`(testTask.title))

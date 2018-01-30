@@ -15,25 +15,19 @@
  */
 package com.example.android.architecture.blueprints.todoapp.data.source
 
-import android.content.Context
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.util.any
-import com.example.android.architecture.blueprints.todoapp.util.capture
 import com.example.android.architecture.blueprints.todoapp.util.eq
-import com.google.common.collect.Lists
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.core.IsEqual
+import org.hamcrest.core.IsNull
 import org.junit.After
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertThat
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.ArgumentCaptor
-import org.mockito.Captor
 import org.mockito.Mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 
 /**
@@ -45,17 +39,11 @@ class TasksRepositoryTest {
     private val TASK_TITLE2 = "title2"
     private val TASK_TITLE3 = "title3"
     private val TASK_DESCRIPTION = "Some task description."
-    private val TASKS = Lists.newArrayList(Task("Title1", "Description1"),
+    private val TASKS = listOf(Task("Title1", "Description1"),
             Task("Title2", "Description2"))
     private lateinit var tasksRepository: TasksRepository
     @Mock private lateinit var tasksRemoteDataSource: TasksDataSource
     @Mock private lateinit var tasksLocalDataSource: TasksDataSource
-    @Mock private lateinit var context: Context
-    @Mock private lateinit var getTaskCallback: TasksDataSource.GetTaskCallback
-    @Mock private lateinit var loadTasksCallback: TasksDataSource.LoadTasksCallback
-    @Captor private lateinit var tasksCallbackCaptor:
-            ArgumentCaptor<TasksDataSource.LoadTasksCallback>
-    @Captor private lateinit var taskCallbackCaptor: ArgumentCaptor<TasksDataSource.GetTaskCallback>
 
     @Before fun setupTasksRepository() {
         // Mockito has a very convenient way to inject mocks by using the @Mock annotation. To
@@ -71,26 +59,23 @@ class TasksRepositoryTest {
         TasksRepository.destroyInstance()
     }
 
-    @Test fun getTasks_repositoryCachesAfterFirstApiCall() {
-        // Given a setup Captor to capture callbacks
+    @Test fun getTasks_repositoryCachesAfterFirstApiCall() = runBlocking<Unit> {
         // When two calls are issued to the tasks repository
-        twoTasksLoadCallsToRepository(loadTasksCallback)
+        twoTasksLoadCallsToRepository()
 
         // Then tasks were only requested once from Service API
-        verify<TasksDataSource>(tasksRemoteDataSource).getTasks(
-                any<TasksDataSource.LoadTasksCallback>())
+        verify<TasksDataSource>(tasksRemoteDataSource).getTasks()
     }
 
-    @Test fun getTasks_requestsAllTasksFromLocalDataSource() {
+    @Test fun getTasks_requestsAllTasksFromLocalDataSource() = runBlocking<Unit> {
         // When tasks are requested from the tasks repository
-        tasksRepository.getTasks(loadTasksCallback)
+        tasksRepository.getTasks()
 
         // Then tasks are loaded from the local data source
-        verify<TasksDataSource>(tasksLocalDataSource).getTasks(
-                any<TasksDataSource.LoadTasksCallback>())
+        verify<TasksDataSource>(tasksLocalDataSource).getTasks()
     }
 
-    @Test fun saveTask_savesTaskToServiceAPI() {
+    @Test fun saveTask_savesTaskToServiceAPI() = runBlocking<Unit> {
         // Given a stub task with title and description
         val newTask = Task(TASK_TITLE, TASK_DESCRIPTION)
 
@@ -103,7 +88,7 @@ class TasksRepositoryTest {
         assertThat(tasksRepository.cachedTasks.size, `is`(1))
     }
 
-    @Test fun completeTask_completesTaskToServiceAPIUpdatesCache() {
+    @Test fun completeTask_completesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given a stub active task with title and description added in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION)
@@ -123,7 +108,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun completeTaskId_completesTaskToServiceAPIUpdatesCache() {
+    @Test fun completeTaskId_completesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given a stub active task with title and description added in the repository
             Task(TASK_TITLE, TASK_DESCRIPTION).also {
@@ -143,7 +128,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun activateTask_activatesTaskToServiceAPIUpdatesCache() {
+    @Test fun activateTask_activatesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         // Given a stub completed task with title and description in the repository
         val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
         with(tasksRepository) {
@@ -160,7 +145,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun activateTaskId_activatesTaskToServiceAPIUpdatesCache() {
+    @Test fun activateTaskId_activatesTaskToServiceAPIUpdatesCache() = runBlocking<Unit> {
         // Given a stub completed task with title and description in the repository
         val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
         with(tasksRepository) {
@@ -179,15 +164,15 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun getTask_requestsSingleTaskFromLocalDataSource() {
+    @Test fun getTask_requestsSingleTaskFromLocalDataSource() = runBlocking<Unit> {
         // When a task is requested from the tasks repository
-        tasksRepository.getTask(TASK_TITLE, getTaskCallback)
+        tasksRepository.getTask(TASK_TITLE)
 
         // Then the task is loaded from the database
-        verify(tasksLocalDataSource).getTask(eq(TASK_TITLE), any<TasksDataSource.GetTaskCallback>())
+        verify(tasksLocalDataSource).getTask(eq(TASK_TITLE))
     }
 
-    @Test fun deleteCompletedTasks_deleteCompletedTasksToServiceAPIUpdatesCache() {
+    @Test fun deleteCompletedTasks_deleteCompletedTasksToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given 2 stub completed tasks and 1 stub active tasks in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
@@ -213,7 +198,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun deleteAllTasks_deleteTasksToServiceAPIUpdatesCache() {
+    @Test fun deleteAllTasks_deleteTasksToServiceAPIUpdatesCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given 2 stub completed tasks and 1 stub active tasks in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted = true }
@@ -234,7 +219,7 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun deleteTask_deleteTaskToServiceAPIRemovedFromCache() {
+    @Test fun deleteTask_deleteTaskToServiceAPIRemovedFromCache() = runBlocking<Unit> {
         with(tasksRepository) {
             // Given a task in the repository
             val newTask = Task(TASK_TITLE, TASK_DESCRIPTION).apply { isCompleted }
@@ -253,77 +238,80 @@ class TasksRepositoryTest {
         }
     }
 
-    @Test fun getTasksWithDirtyCache_tasksAreRetrievedFromRemote() {
+    @Test fun getTasksWithDirtyCache_tasksAreRetrievedFromRemote() = runBlocking<Unit> {
         with(tasksRepository) {
             // When calling getTasks in the repository with dirty cache
             refreshTasks()
-            getTasks(loadTasksCallback)
+
+            // And the remote data source has data available
+            setTasksAvailable(tasksRemoteDataSource, TASKS)
+
+            val tasks = getTasks()
+            assertThat(tasks, IsEqual(TASKS))
+
+            // Verify the tasks from the remote data source are returned, not the local
+            verify(tasksLocalDataSource, never()).getTasks()
         }
-
-        // And the remote data source has data available
-        setTasksAvailable(tasksRemoteDataSource, TASKS)
-
-        // Verify the tasks from the remote data source are returned, not the local
-        verify(tasksLocalDataSource, never()).getTasks(loadTasksCallback)
-        verify(loadTasksCallback).onTasksLoaded(TASKS)
     }
 
-    @Test fun getTasksWithLocalDataSourceUnavailable_tasksAreRetrievedFromRemote() {
-        // When calling getTasks in the repository
-        tasksRepository.getTasks(loadTasksCallback)
-
-        // And the local data source has no data available
+    @Test fun getTasksWithLocalDataSourceUnavailable_tasksAreRetrievedFromRemote() = runBlocking<Unit> {
+        // When the local data source has no data available
         setTasksNotAvailable(tasksLocalDataSource)
 
         // And the remote data source has data available
         setTasksAvailable(tasksRemoteDataSource, TASKS)
 
-        // Verify the tasks from the local data source are returned
-        verify(loadTasksCallback).onTasksLoaded(TASKS)
+        val tasks = tasksRepository.getTasks()
+
+        // Verify the tasks from the remote data source are returned
+        assertThat(tasks, IsEqual(TASKS))
     }
 
-    @Test fun getTasksWithBothDataSourcesUnavailable_firesOnDataUnavailable() {
-        // When calling getTasks in the repository
-        tasksRepository.getTasks(loadTasksCallback)
-
-        // And the local data source has no data available
+    @Test fun getTasksWithBothDataSourcesUnavailable_firesOnDataUnavailable() = runBlocking<Unit> {
+        // When the local data source has no data available
         setTasksNotAvailable(tasksLocalDataSource)
 
         // And the remote data source has no data available
         setTasksNotAvailable(tasksRemoteDataSource)
 
+        // When calling getTasks in the repository
+        val tasks = tasksRepository.getTasks()
+
         // Verify no data is returned
-        verify(loadTasksCallback).onDataNotAvailable()
+        assertThat(tasks, IsNull())
     }
 
-    @Test fun getTaskWithBothDataSourcesUnavailable_firesOnDataUnavailable() {
+    @Test fun getTaskWithBothDataSourcesUnavailable_firesOnDataUnavailable() = runBlocking<Unit> {
         // Given a task id
         val taskId = "123"
 
-        // When calling getTask in the repository
-        tasksRepository.getTask(taskId, getTaskCallback)
-
-        // And the local data source has no data available
-        setTaskNotAvailable(tasksLocalDataSource, taskId)
+        // When the local data source has no data available
+        `when`(tasksLocalDataSource.getTask(eq(taskId))).thenReturn(null)
 
         // And the remote data source has no data available
-        setTaskNotAvailable(tasksRemoteDataSource, taskId)
+        `when`(tasksRemoteDataSource.getTask(eq(taskId))).thenReturn(null)
 
         // Verify no data is returned
-        verify(getTaskCallback).onDataNotAvailable()
+        assertThat(tasksRepository.getTask(taskId), IsNull())
+
+        // Verify that local data source has been called
+        verify(tasksLocalDataSource).getTask(eq(taskId))
+
+        // Verify that local data source has been called
+        verify(tasksRemoteDataSource).getTask(eq(taskId))
     }
 
-    @Test fun getTasks_refreshesLocalDataSource() {
+    @Test fun getTasks_refreshesLocalDataSource() = runBlocking<Unit> {
+        // Make the remote data source return data
+        setTasksAvailable(tasksRemoteDataSource, TASKS)
+
         with(tasksRepository) {
             // Mark cache as dirty to force a reload of data from remote data source.
             refreshTasks()
 
             // When calling getTasks in the repository
-            getTasks(loadTasksCallback)
+            getTasks()
         }
-
-        // Make the remote data source return data
-        setTasksAvailable(tasksRemoteDataSource, TASKS)
 
         // Verify that the data fetched from the remote data source was saved in local.
         verify(tasksLocalDataSource, times(TASKS.size)).saveTask(any<Task>())
@@ -332,43 +320,22 @@ class TasksRepositoryTest {
     /**
      * Convenience method that issues two calls to the tasks repository
      */
-    private fun twoTasksLoadCallsToRepository(callback: TasksDataSource.LoadTasksCallback) {
-        // When tasks are requested from repository
-        tasksRepository.getTasks(callback) // First call to API
-
-        // Use the Mockito Captor to capture the callback
-        verify(tasksLocalDataSource).getTasks(capture(tasksCallbackCaptor))
-
+    private suspend fun twoTasksLoadCallsToRepository() {
         // Local data source doesn't have data yet
-        tasksCallbackCaptor.value.onDataNotAvailable()
+        `when`(tasksLocalDataSource.getTasks()).thenReturn(null)
 
+        // The remote data source will cache tasks
+        `when`(tasksRemoteDataSource.getTasks()).thenReturn(TASKS)
 
-        // Verify the remote data source is queried
-        verify(tasksRemoteDataSource).getTasks(capture(tasksCallbackCaptor))
-
-        // Trigger callback so tasks are cached
-        tasksCallbackCaptor.value.onTasksLoaded(TASKS)
-
-        tasksRepository.getTasks(callback) // Second call to API
+        tasksRepository.getTasks() // First call to API
+        tasksRepository.getTasks() // Second call to API
     }
 
-    private fun setTasksNotAvailable(dataSource: TasksDataSource) {
-        verify(dataSource).getTasks(capture(tasksCallbackCaptor))
-        tasksCallbackCaptor.value.onDataNotAvailable()
+    private suspend fun setTasksNotAvailable(dataSource: TasksDataSource) {
+        `when`(dataSource.getTasks()).thenReturn(null)
     }
 
-    private fun setTasksAvailable(dataSource: TasksDataSource, tasks: List<Task>) {
-        verify(dataSource).getTasks(capture(tasksCallbackCaptor))
-        tasksCallbackCaptor.value.onTasksLoaded(tasks)
-    }
-
-    private fun setTaskNotAvailable(dataSource: TasksDataSource, taskId: String) {
-        verify(dataSource).getTask(eq(taskId), capture(taskCallbackCaptor))
-        taskCallbackCaptor.value.onDataNotAvailable()
-    }
-
-    private fun setTaskAvailable(dataSource: TasksDataSource, task: Task) {
-        verify(dataSource).getTask(eq(task.id), capture(taskCallbackCaptor))
-        taskCallbackCaptor.value.onTaskLoaded(task)
+    private suspend fun setTasksAvailable(dataSource: TasksDataSource, tasks: List<Task>) {
+        `when`(dataSource.getTasks()).thenReturn(tasks)
     }
 }

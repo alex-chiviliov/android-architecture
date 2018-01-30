@@ -31,6 +31,7 @@ import com.example.android.architecture.blueprints.todoapp.ViewModelFactory
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.taskdetail.TaskDetailActivity
 import com.example.android.architecture.blueprints.todoapp.util.EspressoIdlingResource
+import kotlinx.coroutines.experimental.runBlocking
 import org.hamcrest.Matchers.containsString
 import org.junit.After
 import org.junit.Before
@@ -64,7 +65,7 @@ import org.junit.runner.RunWith
      * the service API. This is a great way to make your tests more reliable and faster at the same
      * time, since they are isolated from any outside dependencies.
      */
-    @Before fun intentWithStubbedTaskId() {
+    @Before fun intentWithStubbedTaskId() = runBlocking<Unit> {
         ViewModelFactory.destroyInstance()
         // Given some tasks
         val tasksRepository =
