@@ -37,7 +37,7 @@ class TasksFragment : Fragment() {
     private lateinit var viewDataBinding: TasksFragBinding
     private lateinit var listAdapter: TasksAdapter
 
-    override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?,
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
             savedInstanceState: Bundle?): View? {
         viewDataBinding = TasksFragBinding.inflate(inflater, container, false).apply {
             viewmodel = (activity as TasksActivity).obtainViewModel()
@@ -48,13 +48,13 @@ class TasksFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        viewDataBinding.viewmodel.start()
+        viewDataBinding.viewmodel!!.start()
     }
 
     override fun onOptionsItemSelected(item: MenuItem) =
             when (item.itemId) {
                 R.id.menu_clear -> {
-                    viewDataBinding.viewmodel.clearCompletedTasks()
+                    viewDataBinding.viewmodel!!.clearCompletedTasks()
                     true
                 }
                 R.id.menu_filter -> {
@@ -62,7 +62,7 @@ class TasksFragment : Fragment() {
                     true
                 }
                 R.id.menu_refresh -> {
-                    viewDataBinding.viewmodel.loadTasks(true)
+                    viewDataBinding.viewmodel!!.loadTasks(true)
                     true
                 }
                 else -> false
@@ -74,7 +74,7 @@ class TasksFragment : Fragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-        view?.setupSnackbar(this, viewDataBinding.viewmodel.snackbarMessage, Snackbar.LENGTH_LONG)
+        view?.setupSnackbar(this, viewDataBinding.viewmodel!!.snackbarMessage, Snackbar.LENGTH_LONG)
         setupFab()
         setupListAdapter()
         setupRefreshLayout()
@@ -85,7 +85,7 @@ class TasksFragment : Fragment() {
             menuInflater.inflate(R.menu.filter_tasks, menu)
 
             setOnMenuItemClickListener {
-                viewDataBinding.viewmodel.run {
+                viewDataBinding.viewmodel!!.run {
                     currentFiltering =
                             when (it.itemId) {
                                 R.id.active -> TasksFilterType.ACTIVE_TASKS
@@ -104,13 +104,13 @@ class TasksFragment : Fragment() {
         activity.findViewById<FloatingActionButton>(R.id.fab_add_task).run {
             setImageResource(R.drawable.ic_add)
             setOnClickListener {
-                viewDataBinding.viewmodel.addNewTask()
+                viewDataBinding.viewmodel!!.addNewTask()
             }
         }
     }
 
     private fun setupListAdapter() {
-        listAdapter = TasksAdapter(ArrayList(0), viewDataBinding.viewmodel)
+        listAdapter = TasksAdapter(ArrayList(0), viewDataBinding.viewmodel!!)
         viewDataBinding.tasksList.adapter = listAdapter
     }
 

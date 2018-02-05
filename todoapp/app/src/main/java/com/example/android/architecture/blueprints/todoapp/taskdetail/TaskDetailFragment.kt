@@ -34,18 +34,18 @@ class TaskDetailFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         setupFab()
-        view?.setupSnackbar(this, viewDataBinding.viewmodel.snackbarMessage, Snackbar.LENGTH_LONG)
+        view?.setupSnackbar(this, viewDataBinding.viewmodel!!.snackbarMessage, Snackbar.LENGTH_LONG)
     }
 
     private fun setupFab() {
         with(activity.findViewById<View>(R.id.fab_edit_task)) {
-            setOnClickListener { viewDataBinding.viewmodel.editTask() }
+            setOnClickListener { viewDataBinding.viewmodel!!.editTask() }
         }
     }
 
     override fun onResume() {
         super.onResume()
-        viewDataBinding.viewmodel.start(arguments.getString(ARGUMENT_TASK_ID))
+        viewDataBinding.viewmodel!!.start(arguments.getString(ARGUMENT_TASK_ID))
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -55,7 +55,7 @@ class TaskDetailFragment : Fragment() {
             viewmodel = (activity as TaskDetailActivity).obtainViewModel()
             listener = object : TaskDetailUserActionsListener {
                 override fun onCompleteChanged(v: View) {
-                    viewmodel.setCompleted((v as CheckBox).isChecked)
+                    viewmodel!!.setCompleted((v as CheckBox).isChecked)
                 }
             }
         }
@@ -66,7 +66,7 @@ class TaskDetailFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem) =
             when (item.itemId) {
                 R.id.menu_delete -> {
-                    viewDataBinding.viewmodel.deleteTask()
+                    viewDataBinding.viewmodel!!.deleteTask()
                     true
                 }
                 else -> false
