@@ -44,8 +44,8 @@ class AddEditTaskViewModel(
         private val dispatcher: CoroutineDispatcher = UI // a different Dispatcher is used in unit tests
 ) : AndroidViewModel(context) {
 
-    val title = ObservableField<String>()
-    val description = ObservableField<String>()
+    val title = ObservableField<String>("")
+    val description = ObservableField<String>("")
     val dataLoading = ObservableBoolean(false)
     internal val snackbarMessage = SingleLiveEvent<Int>()
     internal val taskUpdatedEvent = SingleLiveEvent<Void>()
