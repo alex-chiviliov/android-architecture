@@ -124,6 +124,5 @@ dependencies {
     androidTestImplementation "com.android.support:appcompat-v7:$rootProject.supportLibraryVersion"
     androidTestImplementation "com.android.support:support-compat:$rootProject.supportLibraryVersion"
     androidTestImplementation "com.android.support:design:$rootProject.supportLibraryVersion"
-    androidTestImplementation 'android.arch.lifecycle:runtime:1.0.3' // Byzantine versioning system
 }
 
