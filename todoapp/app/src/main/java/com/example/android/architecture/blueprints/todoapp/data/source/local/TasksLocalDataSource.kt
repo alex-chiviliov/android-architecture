@@ -26,8 +26,8 @@ import com.example.android.architecture.blueprints.todoapp.data.source.local.Tas
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.COLUMN_NAME_TITLE
 import com.example.android.architecture.blueprints.todoapp.data.source.local.TasksPersistenceContract.TaskEntry.TABLE_NAME
 import kotlinx.coroutines.experimental.DefaultDispatcher
-import kotlinx.coroutines.experimental.run
 import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.withContext
 
 /**
  * Concrete implementation of a data source as a db.
@@ -37,10 +37,10 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
     private val dbHelper: TasksDbHelper = TasksDbHelper(context)
 
     /**
-     * Note: [LoadTasksCallback.onDataNotAvailable] is fired if the database doesn't exist
+     * Note: the null is returned if the database doesn't exist
      * or the table is empty.
      */
-    override suspend fun getTasks(): List<Task>? = run(DefaultDispatcher) {
+    override suspend fun getTasks(): List<Task>? = withContext(DefaultDispatcher) {
         dbHelper.readableDatabase.use { db ->
 
             val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
@@ -73,7 +73,7 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
     /**
      * Note: the null is returned if the [Task] isn't found.
      */
-     override suspend fun getTask(taskId: String): Task? = run(DefaultDispatcher) {
+     override suspend fun getTask(taskId: String): Task? = withContext(DefaultDispatcher) {
         dbHelper.readableDatabase.use { db ->
 
             val projection = arrayOf(COLUMN_NAME_ENTRY_ID, COLUMN_NAME_TITLE,
@@ -99,26 +99,28 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         }
     }
 
-    override suspend fun saveTask(task: Task) = run(DefaultDispatcher) {
-        val values = ContentValues().apply {
-            put(COLUMN_NAME_ENTRY_ID, task.id)
-            put(COLUMN_NAME_TITLE, task.title)
-            put(COLUMN_NAME_DESCRIPTION, task.description)
-            put(COLUMN_NAME_COMPLETED, task.isCompleted)
-        }
-        with(dbHelper.writableDatabase) {
-            insert(TABLE_NAME, null, values)
-            close()
+    override suspend fun saveTask(task: Task) {
+        withContext(DefaultDispatcher) {
+            val values = ContentValues().apply {
+                put(COLUMN_NAME_ENTRY_ID, task.id)
+                put(COLUMN_NAME_TITLE, task.title)
+                put(COLUMN_NAME_DESCRIPTION, task.description)
+                put(COLUMN_NAME_COMPLETED, task.isCompleted)
+            }
+            dbHelper.writableDatabase.use { db ->
+                db.insert(TABLE_NAME, null, values)
+            }
         }
     }
 
-    override suspend fun completeTask(task: Task) = run(DefaultDispatcher) {
-        val values = ContentValues().apply {
-            put(COLUMN_NAME_COMPLETED, true)
-        }
-        with(dbHelper.writableDatabase) {
-            update(TABLE_NAME, values, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(task.id))
-            close()
+    override suspend fun completeTask(task: Task) {
+        withContext(DefaultDispatcher) {
+            val values = ContentValues().apply {
+                put(COLUMN_NAME_COMPLETED, true)
+            }
+            dbHelper.writableDatabase.use { db ->
+                db.update(TABLE_NAME, values, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(task.id))
+            }
         }
     }
 
@@ -127,14 +129,15 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override suspend fun activateTask(task: Task) = run(DefaultDispatcher) {
-        val values = ContentValues().apply {
-            put(COLUMN_NAME_COMPLETED, false)
-        }
+    override suspend fun activateTask(task: Task) {
+        withContext(DefaultDispatcher) {
+            val values = ContentValues().apply {
+                put(COLUMN_NAME_COMPLETED, false)
+            }
 
-        with(dbHelper.writableDatabase) {
-            update(TABLE_NAME, values, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(task.id))
-            close()
+            dbHelper.writableDatabase.use { db ->
+                db.update(TABLE_NAME, values, "$COLUMN_NAME_ENTRY_ID LIKE ?", arrayOf(task.id))
+            }
         }
     }
 
@@ -143,12 +146,13 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // converting from a {@code taskId} to a {@link task} using its cached data.
     }
 
-    override suspend fun clearCompletedTasks() = run(DefaultDispatcher) {
-        val selection = "$COLUMN_NAME_COMPLETED LIKE ?"
-        val selectionArgs = arrayOf("1")
-        with(dbHelper.writableDatabase) {
-            delete(TABLE_NAME, selection, selectionArgs)
-            close()
+    override suspend fun clearCompletedTasks() {
+        withContext(DefaultDispatcher) {
+            val selection = "$COLUMN_NAME_COMPLETED LIKE ?"
+            val selectionArgs = arrayOf("1")
+            dbHelper.writableDatabase.use { db ->
+                db.delete(TABLE_NAME, selection, selectionArgs)
+            }
         }
     }
 
@@ -157,19 +161,21 @@ class TasksLocalDataSource private constructor(context: Context) : TasksDataSour
         // tasks from all the available data sources.
     }
 
-    override suspend fun deleteAllTasks() = run(DefaultDispatcher) {
-        with(dbHelper.writableDatabase) {
-            delete(TABLE_NAME, null, null)
-            close()
+    override suspend fun deleteAllTasks() {
+        withContext(DefaultDispatcher) {
+            dbHelper.writableDatabase.use { db ->
+                db.delete(TABLE_NAME, null, null)
+            }
         }
     }
 
-    override suspend fun deleteTask(taskId: String) = run(DefaultDispatcher) {
-        val selection = "$COLUMN_NAME_ENTRY_ID LIKE ?"
-        val selectionArgs = arrayOf(taskId)
-        with(dbHelper.writableDatabase) {
-            delete(TABLE_NAME, selection, selectionArgs)
-            close()
+    override suspend fun deleteTask(taskId: String) {
+        withContext(DefaultDispatcher) {
+            val selection = "$COLUMN_NAME_ENTRY_ID LIKE ?"
+            val selectionArgs = arrayOf(taskId)
+            dbHelper.writableDatabase.use { db ->
+                db.delete(TABLE_NAME, selection, selectionArgs)
+            }
         }
     }
 
