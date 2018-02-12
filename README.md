@@ -58,7 +58,7 @@ It is screaming to be "reverse engineered" and converted to a native Kotlin asyn
 * _suspending_ (or sequential) style;
 * _async/await_ style
 
-See [Asynchronous programming styles](https://github.com/Kotlin/kotlin-coroutines/blob/master/kotlin-coroutines-informal.md#asynchronous-programming-styles) the for enlightening discussion.
+See [Asynchronous programming styles](https://github.com/Kotlin/kotlin-coroutines/blob/master/kotlin-coroutines-informal.md#asynchronous-programming-styles) for the enlightening discussion.
 
 We have chosen to adopt the suspending style as it is more natural and easier to use. The above method was converted to:
 ```kotlin
