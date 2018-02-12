@@ -1,11 +1,17 @@
-# todo-mvvm-live-kotlin
+# todo-mvvm-live-kotlin-coroutines
 
-This version of the app is called todo-mvvm-live-kotlin, and it is the kotlin version of [todo-mvvm-live](https://github.com/googlesamples/android-architecture/tree/todo-mvvm-live/).
-It uses some Architecture Components like ViewModel, LiveData, and other lifecycle-aware classes.
+This version of the app is called `todo-mvvm-live-kotlin-coroutines`. It is derived from [todo-mvvm-live-kotlin](https://github.com/googlesamples/android-architecture/tree/dev-todo-mvvm-live-kotlin/) and demonstrates the usage of Kotlin coroutines for asynchronous processing.
 
-This sample is not final, as the Architecture Components are in alpha stage at the time of writing this document.
+Kotlin coroutines bring in numerous benefits:
 
-## What you need
+* The asynchronous code becomes much more intuitive and looks like "normal" sequential code. There is no noise created by callbacks, custom reactive operators, etc.
+
+* Kotlin coroutines are lightweight, native to Kotlin and included into Kotlin standard libraries.
+
+* All asynchronous programming tasks can be achieved naturally using the normal language constructs (conditional statements, loops, exception handling, etc.) without the need to learn numerous new "operators" (flatMap, zip, onErrorResumeNext, etc.) by 3rd party asynchronous libraries.
+
+
+## What you need to know
 
 Before exploring this sample, you should familiarize yourself with the following topics:
 
@@ -14,77 +20,100 @@ Before exploring this sample, you should familiarize yourself with the following
 * The [todo-mvvm-databinding](https://github.com/googlesamples/android-architecture/tree/todo-mvvm-databinding) sample
 * The [MVVM](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel) architecture
 * The [Kotlin programming language](https://kotlinlang.org)
+* [Guide to kotlinx.coroutines by example](https://github.com/Kotlin/kotlinx.coroutines/blob/develop/coroutines-guide.md)
+* [Guide to UI programming with coroutines](https://github.com/Kotlin/kotlinx.coroutines/blob/master/ui/coroutines-guide-ui.md)
+
 
 ## Implementing the app
 
-Although the parent sample already used ViewModels, as it was following an MVVM architecture, the Architecture
-Components have different restrictions by design.
+This section provides an overview of changes to the parent project [todo-mvvm-live-kotlin](https://github.com/googlesamples/android-architecture/tree/dev-todo-mvvm-live-kotlin/).
 
-In the MVVM architecture, Views react to changes in the ViewModel without being explicitly called. However, the MVVM
-architecture presents some challenges when working with some Android components.
+### Build files
 
-### Live events
-
-A new `SingleLiveEvent` class is created, which extends `MutableLiveData` so it's lifecycle-aware. It's used for
-communication between ViewModels and UI views (activities and fragments).
-
-Instead of holding data, it dispatches data once. This is important to prevent events being fired after a rotation, for
-example.
-
-A convenient use for this is navigation. There is no reference to the View from a ViewModel so the communication between
-them must happen via a subscription. ViewModels expose events like `openTaskEvent` and views subscribe to them. For
-example:
-
-```kotlin
-    private fun subscribeToNavigationChanges(viewModel: TaskDetailViewModel) {
-        // The activity observes the navigation commands in the ViewModel
-        viewModel.run {
-            editTaskCommand.observe(this@TaskDetailActivity,
-                    Observer { this@TaskDetailActivity.onStartEditTask() })
-            deleteTaskCommand.observe(this@TaskDetailActivity,
-                    Observer { this@TaskDetailActivity.onTaskDeleted() })
-        }
-    }
+To enable coroutine features in Kotlin compiler, the following directive should be added to `gradle.properties` file:
+```
+kotlin.coroutines=enable
 ```
 
-### Snackbar
+The majority of application level coroutine primitives are contained in Kotlin coroutine extension library, so they should be added to `app/build.gradle`:
+```gradle
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinx_version"
+``` 
 
-To show a [`Snackbar`](https://developer.android.com/reference/android/support/design/widget/Snackbar.html), you must
-use a static call to pass a view object. In this kotlin example, we wrap it in an extension function for View defined
-as follows:
+### Data Source interface
 
+The repository interface in the parent app is callback based. For example, the `getTask()` method in [TasksDataSource](https://github.com/googlesamples/android-architecture/tree/dev-todo-mvvm-live-kotlin/todoapp) is defined like this:
 ```kotlin
-fun View.showSnackbar(snackbarText: String) {
-    Snackbar.make(this, snackbarText, Snackbar.LENGTH_LONG).show()
+interface GetTaskCallback {
+    fun onTaskLoaded(task: Task)
+    fun onDataNotAvailable()
+}
+
+fun getTask(taskId: String, callback: GetTaskCallback)
+```
+
+It is screaming to be "reverse engineered" and converted to a native Kotlin asynchronous method. There are two styles of asynchronous programming in Kotlin:
+
+* _suspending_ (or sequential) style;
+* _async/await_ style
+
+See [Asynchronous programming styles](https://github.com/Kotlin/kotlin-coroutines/blob/master/kotlin-coroutines-informal.md#asynchronous-programming-styles) the for enlightening discussion.
+
+We have chosen to adopt the suspending style as it is more natural and easier to use. The above method was converted to:
+```kotlin
+suspend fun getTask(taskId: String): Task?
+``` 
+
+Similar transformations have been applied to all other long-running interface methods resulting in:
+```kotlin
+interface TasksDataSource {
+    suspend fun getTasks(): List<Task>?
+    suspend fun getTask(taskId: String): Task?
+    suspend fun saveTask(task: Task)
+    suspend fun completeTask(task: Task)
+    suspend fun completeTask(taskId: String)
+    suspend fun activateTask(task: Task)
+    suspend fun activateTask(taskId: String)
+    suspend fun clearCompletedTasks()
+    fun refreshTasks()
+    suspend fun deleteAllTasks()
+    suspend fun deleteTask(taskId: String)
+}
+``` 
+
+This interface change caused flow-on effects on classes implementing this interface, consuming it and used for testing it.
+
+### Data Source implementation
+
+`TasksLocalDataSource` is a good example. Two simple changes have been applied to the `getTask()` method:
+
+1. Wrapping the method body into the `withContext` _coroutine builder_, which makes the method suspendable and ensures that its body is executed on the designated thread pool.
+
+2. Returning the result by simply using the `return` statement instead of making a callback call.
+
+### Consuming Data Source in the UI
+
+The primary consumer of the `getTask()` method is `TaskDetailViewModel`. Instead of implementing the `GetTaskCallback` interface and updating the UI from there, `TaskDetailViewModel` now does it sequentially:
+```kotlin
+fun start(taskId: String?) = launch(UI, CoroutineStart.UNDISPATCHED) {
+    if (taskId != null) {
+        isDataLoading = true
+        val task = tasksRepository.getTask(taskId)
+        isDataLoading = false
+        setTask(task)
+    }
 }
 ```
 
-A ViewModel, however, doesn't have the necessary reference to the view hierarchy to call this function. Instead, you can
-manually subscribe the snackbar to a Snackbar event. In this case the subscription is made to a `SingleLiveEvent<Int>`
-and takes a string resource ID (hence the Int parameter type). There's only one snackbar and there should only be one
-active observer at a time. Messages are only shown once.
+The `launch` coroutine builder creates a _coroutine context_ bound to the main UI thread, so that when the asynchronous call to the `getTask()` method is complete the execution resumes on the UI thread.
 
-### TasksAdapter
-There is no `TaskItemViewModel` in this branch for each particular item in the list, so tasks in the list only
-communicate with the list's ViewModel.
+### Data Source unit testing
 
-### Using ViewModels in bindings with the Data Binding Library
-ViewModels are used to show data of a particular screen, but they don't handle user actions. For that it's much more
-convenient to create user actions listeners or even presenters that hold no state during configuration changes and hence
-are easy to recreate. See `TaskItemUserActionsListener` for an example.
+Fixing the unit tests was almost trivial (for example, check `TasksLocalDataSourceTest`):
 
-### Repository does not use LiveData
-For simplicity and similarity with the parent branch, the repository does not use LiveData to expose its data.
+1. Wrap the body of the test case into the `runBlocking` coroutine builder to make sure that the unit test code blocks on every call to a suspending function.
 
-### Code Metrics
+2. Consume outputs of the method being tested sequentially rather then via callbacks.
 
-```
--------------------------------------------------------------------------------
-Language                     files          blank        comment           code
--------------------------------------------------------------------------------
-Kotlin                          58            898           1755           3228 (3060 in MVP-kotlin)
-XML                             22            127              0            974
--------------------------------------------------------------------------------
-SUM:                            80           1015           1755           4192
--------------------------------------------------------------------------------
-```
+The result was much simpler and easier to read unit test code.
